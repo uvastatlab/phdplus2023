@@ -44,7 +44,7 @@ R is a free, open-source software environment and programming language designed 
 Wednesday, TBD  
 Instructor: Jacob Goldstein-Greenwood
 
-While many researchers want to jump right into developing models or making predictions using their data, it critical to first understand the data. The process of initially investigating your data is called exploratory data analysis or EDA. EDA involves examining your data using sorting, tabulations, and numerical summaries. This session will introduce the dplyr package as a powerful tool that will allow learners to look for initial patterns in their data, check for missing data, and to set themselves up to move forward with analyses.
+While many researchers want to jump right into developing models or making predictions using their data, it's critical to first understand the data. The process of initially investigating your data is called exploratory data analysis or EDA. EDA involves examining your data using sorting, tabulations, and numerical summaries. This session will introduce the dplyr package as a powerful tool that will allow learners to look for initial patterns in their data, check for missing data, and to set themselves up to move forward with analyses.
 
 
 <br>
