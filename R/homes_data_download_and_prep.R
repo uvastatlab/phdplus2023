@@ -1,7 +1,7 @@
 # Clay Ford
 # jcf2d@virginia.edu
 
-# getting and munging albemarle county homes data
+# getting and munging Albemarle county homes data
 
 library(tidyverse)
 
