@@ -1,5 +1,5 @@
 ---
-title: "2022 PhD Plus Data Literacy in R"
+title: "2023 PhD Plus Data Literacy in R"
 author: ""
 date: ""
 output: html_document
@@ -20,7 +20,7 @@ This site will host the materials for the series.
 <br>
 
 ## Schedule
-* Dates: Wednesdays, 2/2, 2/9, 2/16, 2/23, 3/2, 3/16
+* Dates: Wednesdays, TBD
 * Time: 2:00 - 4:00 p.m.
 * Place: Virtual Zoom meetings
 
@@ -32,63 +32,61 @@ Upon successful completion of this series, PhD students will be eligible for PhD
 ## Sessions
 
 #### **Getting Started with R **
-Wednesday, 2/2/2021  
+Wednesday, TBD   
 Instructor: Jenn Huck
 
 R is a free, open-source software environment and programming language designed specifically for statistical analysis; RStudio is a free, open source integrated development environment (IDE) for R that provides a friendly interface for viewing graphs, data tables, R code, and output all at the same time. This first session provides a gentle introduction to R and RStudio. We’ll get started navigating R with RStudio, loading libraries, and importing data. We’ll do some basic data manipulation and exploration and cover some key practices and shortcuts for using R effectively and helpful resources for learning more.
 
-[Workshop Materials](https://github.com/uvastatlab/phdplus2022/raw/main/docs/getting-started-R.zip)
 
 <br>
 
 #### **Data Preparation**
-Wednesday, 2/9/2021   
-Instructor: Marieke Jones
+Wednesday, TBD  
+Instructor: Jacob Goldstein-Greenwood
 
 While many researchers want to jump right into developing models or making predictions using their data, it critical to first understand the data. The process of initially investigating your data is called exploratory data analysis or EDA. EDA involves examining your data using sorting, tabulations, and numerical summaries. This session will introduce the dplyr package as a powerful tool that will allow learners to look for initial patterns in their data, check for missing data, and to set themselves up to move forward with analyses.
 
-[Workshop Materials](https://github.com/uvastatlab/phdplus2022/raw/main/docs/dataprep.zip)
 
 <br>
 
 #### **Data Visualization**
-Wednesday, 2/16/2021   
-Instructor: Marieke Jones  
+Wednesday, TBD   
+Instructor: Jacob Goldstein-Greenwood 
 
 Exploring our data with graphs allows us to visualize relationships, spot unusual observations, or find unexpected patterns. In this session, we introduce how to effectively use the ggplot2 package to explore and visualize data in R. With its consistent syntax and layered approach to making graphics, ggplot2 has revolutionized data visualization. What previously would have required hours of tedious programming can now be accomplished in a few lines of ggplot2 code. This workshop will introduce the logic behind ggplot2, how to use ggplot2 to explore data, and how to customize and polish ggplot2 graphs. 
 
-[Workshop Materials](https://github.com/uvastatlab/phdplus2022/raw/main/docs/03_dataviz.zip)
+
 
 <br>
 
 #### **Data Wrangling**
-Wednesday, 2/23/2021   
+Wednesday, TBD   
 Instructor: David Martin
 
 One of the most difficult tasks when conducting data analysis is combining disparate datasets into a single usable dataset. This session will provide participants with the key functions and functionality found within R and the tidyverse package. Specifically, participants will be able to merge disparate datasets together, reorganize and reshape datasets, clean and prepare datasets in preparation for merging, work with dates, and other useful data wrangling tasks.
 
-[Workshop Materials](https://github.com/uvastatlab/phdplus2022/raw/main/docs/04_data_wrangling.zip)
+
 
 <br>
 
 #### **Reporting and Presenting Data using R Markdown**
-Wednesday, 3/2/2021   
+Wednesday, TBD    
 Instructor: Clay Ford    
 
 After we explore, summarize and visualize our data, we likely need to present our findings to an audience. This may be a document, a web page, a slide deck, or even a dashboard. Using R Markdown we can combine R code with narration to quickly create professional reports and presentations, all within RStudio. This means we don't need to copy-and-paste results or plots into another application. We can analyze and write about our data all at once and let RStudio generate the plots and tables. In this final session we'll get you up-and-running with R Markdown so you can create high quality reports, presentations and more. 
 
 
-[Workshop Materials](https://github.com/uvastatlab/phdplus2022/raw/main/docs/05_using_r_markdown.zip)
+
 
 <br>
 
 #### **Data Literacy in R Final Project**
-Wednesday, 3/16/2021   
+Wednesday, TBD    
 Instructor: Clay Ford    
 
 In the final session we give you an opportunity to use your data literacy skills to explore and summarize [earthquake data](https://earthquake.usgs.gov/earthquakes/feed/v1.0/csv.php) courtesy of the US Geological Survey. This final project will consist of a series of tasks that guide you through the process of wrangling, analyzing and visualizing data on earthquakes to better understand where they occur, how often, their magnitude, and more. 
 
-[Workshop Materials](https://github.com/uvastatlab/phdplus2022/raw/main/docs/06_final_project.zip)
+
 
 <br>
 <br>
