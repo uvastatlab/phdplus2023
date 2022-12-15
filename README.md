@@ -1,4 +1,4 @@
-This is the repo for the 2022 Phd+ Data Literacy in R program. The main page with the schedule, session descriptions and materials is https://uvastatlab.github.io/phdplus2022/.
+This is the repo for the 2023 Phd+ Data Literacy in R program. The main page with the schedule, session descriptions and materials is https://uvastatlab.github.io/phdplus2023/.
 
 Instructors, please add session materials to the /docs folder. This may include zip files, html files generated from RMarkdown, R scripts, data, etc. This can also include the RMarkdown files.
 
