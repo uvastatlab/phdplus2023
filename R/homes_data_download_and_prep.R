@@ -4,6 +4,8 @@
 # getting and munging Albemarle county homes data
 
 library(tidyverse)
+# set year when running script
+year <- "2023"
 
 # Albemarle county
 # Office of Geographic Data Services
@@ -136,7 +138,7 @@ homes <- homes %>%
 
 # more likely to use this as age than year, create age of home
 homes <- homes %>% 
-  mutate(age = 2022 - yearbuilt)
+  mutate(age = as.numeric(year) - yearbuilt)
 
 # impute median value within census tract for missing
 tract_age <- homes %>% 
@@ -200,14 +202,25 @@ homes <- homes %>%
 rm(res, facvar, cond_levels)
 
 # save everything to working directory
-save.image("albemarle_homes_2022.Rdata") 
-# load("albemarle_homes_2020.Rdata")
+save.image(paste0("albemarle_homes_", year, ".Rdata")) 
 
 # save just the homes data frame 
-saveRDS(homes, file = "albemarle_homes_2022.rds") 
-# readRDS("albemarle_homes_2022.rds")
+saveRDS(homes, file = paste0("albemarle_homes_", year, ".rds")) 
 
 # save a csv file of the homes data
-write_csv(homes, file = "albemarle_homes_2022.csv") 
+write_csv(homes, file = paste0("albemarle_homes_", year, ".csv")) 
 
-# homes <- read_csv("albemarle_homes_2020.csv")
+# Test everything
+# rm(list = ls())
+# 
+# load("albemarle_homes_2023.Rdata")
+# rm(list = ls())
+# 
+# homes <- readRDS("albemarle_homes_2023.rds")
+# rm(list = ls())
+# 
+# homes <- read_csv("albemarle_homes_2023.csv")
+# rm(list = ls())
+# 
+# homes <- read.csv("albemarle_homes_2023.csv")
+# rm(list = ls())
