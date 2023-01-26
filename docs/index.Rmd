@@ -22,7 +22,7 @@ This site will host the materials for the series.
 ## Schedule
 * Dates: Wednesdays, Feb 22, 2023 - April 5, 2023 (no workshop during Spring Break)
 * Time: 2:00 - 4:00 PM (EST) 
-* Place: Virtual Zoom meetings
+* Place: Virtual Zoom meetings (link to be provided via email to registered participants)
 
 Upon successful completion of this series, PhD students will be eligible for PhD Plus “Data Literacy in R” non-credit credentials on transcripts. These credentials are UVA-endorsed and demonstrate interest and knowledge in basic data science skills to prospective employers. The sessions are cumulative, so understanding of the material in the prior session is assumed. 
 
