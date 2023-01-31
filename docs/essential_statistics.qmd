@@ -7,12 +7,12 @@ format:
     smaller: true
 ---
 
+## Data Literacy
+
 ```{r echo=FALSE}
 d <- readRDS("../data/albemarle_homes_2023.rds")
 # d <- readRDS("data/albemarle_homes_2023.rds")
 ```
-
-## Data Literacy
 
 > data literacy...describes the ability to not only carry out statistical analysis on real world problems, but also to understand and critique any conclusions drawn by others on the basis of statistics.
 
@@ -22,9 +22,10 @@ David Spiegelhalter, *The Art of Statistics*
 
 In this session we explore using R to carry out and interpret basic statistical analyses and highlight potential sources of statistical errors.
 
--   Proportions
--   Means and Medians
+-   Proportions and Percents
+-   Summarizing Numeric Data
 -   Uncertainty
+-   Hypothesis testing 
 -   Modeling
 
 ## Hold the bacon?
@@ -93,7 +94,9 @@ Example: 0.14, or 14%, of students surveyed said they were cancelling Netflix.
 
 That could be 1/7, or 100/700. The former seems less important because of the small denominator.
 
-Percents and Proportions presented without the raw values used to calculate them should be treated carefully.
+::: callout-tip
+Beware of percents and proportions presented without the sample size used to calculate them.
+:::
 
 ## Probability versus Odds
 
@@ -103,35 +106,15 @@ Odds = p/(1 - p) and range from 0 to infinity.
 
 If the probability of rain tomorrow is 0.2, the odds are 0.2/(1 - 0.2) = 1/4.
 
-If the probability of rain tomorrow is 0.8, the odds are 0.8/(1 - 0.) = 4.
+If the probability of rain tomorrow is 0.8, the odds are 0.8/(1 - 0.8) = 4.
 
 ::: callout-important
-Beware of expressing probabilities as odds and vice versa.
+Beware of expressing or interpreting probabilities as odds and vice versa.
 :::
 
-## Proportions in R
-
-```{r echo=TRUE}
-xtabs(~ cooling + fp, data = d) # cross tabulation of cooling and fp
-```
-
-Proportion of homes with/without fireplaces by cooling
-
-```{r echo=TRUE}
-xtabs(~ cooling + fp, data = d) |>
-  proportions(margin = 1) |>  # by rows
-  round(3)
-```
-
-Proportion of homes with/without cooling by fp
-
-```{r echo=TRUE}
-xtabs(~ cooling + fp, data = d) |>
-  proportions(margin = 2) |>  # by columns
-  round(3)
-```
-
 Let's go to R.
+
+
 
 ## Our brains can't handle this
 
@@ -197,20 +180,20 @@ par(op)
 
 ## The `summary()` function
 
-The `summary()` function when used with a numeric vector (or column) of data returns 6 values.
+The `summary()` function when used with a numeric vector (or column) of data returns 6 values (7 if you have missing data):
 
 1.  The smallest value
 2.  The 25th percentile (value below which lies 25% of the data)
 3.  The median (the 50th percentile)
 4.  The mean
-5.  The 75th percentile (value below which lies 25% of the data)
+5.  The 75th percentile (value below which lies 75% of the data)
 6.  The largest value
 
 ```{r echo=TRUE}
-summary(d$totalvalue)
+summary(d$lastsaleprice)
 ```
 
-It appears the data is skewed *right* since the mean is larger than the median by about \$100,000. A histogram and the `summary()` function can tell you a lot about your data.
+It appears the data is skewed *right* since the mean is larger than the median. A histogram and the `summary()` function can tell you a lot about your data.
 
 ## Standard Deviation and IQR
 
@@ -224,6 +207,37 @@ IQR(d$totalvalue)
 ```
 
 As summaries of data, they can be confusing if your audience is not familiar with the concept of *spread*.
+
+## Transforming data
+
+Transforming data to a different scale can reduce the impact of extreme values. A common transformation is the _log_ transformation.
+
+This basically translates data into _magnitudes_.
+
+```{r echo=TRUE}
+x <- c(10, 100, 1000, 10000, 100000, 1000000)
+log10(x) # what power do we raise 10 to get x?
+log(x) # what power do we raise e to get x?
+```
+
+Natural logs are often preferred in statistical analyses because they can make interpretation easier. 
+
+They are also appropriate when large data values can be assumed to be bigger in a _relative_ sense rather than an _absolute_ sense. 
+
+## Before and After
+
+Notice how total value goes from ranging from 4200 - 8,000,000 to about 10 - 16.
+
+```{r}
+op <- par(mfrow = c(1,2), pty = "s")
+hist(d$totalvalue)
+hist(log(d$totalvalue))
+par(op)
+```
+
+::: callout-tip
+Log transformations only work for positive data.
+:::
 
 ## Summarizing two sets of values
 
@@ -240,7 +254,7 @@ plot(totalvalue ~ finsqft, data = samp_d)
 
 Correlation is a single value that can (sometimes) summarize a relationship between two sets of numeric data.
 
-Correlation is unitless and ranges from -1 to 1. It expresses how close dots fall along a straight line.
+Correlation is unitless and ranges from -1 to 1. It expresses how close dots fall along a straight line. [Wikipedia illustration](https://en.wikipedia.org/wiki/Correlation_and_dependence#/media/File:Correlation_examples2.svg)
 
 **Pearson** correlation measures linear association.\
 **Spearman** *rank* correlation can measure non-linear association such as curved lines.
@@ -272,6 +286,7 @@ cor(dat$dino_x, dat$dino_y)  # t-rex
 ```
 
 
+
 ## Trees
 
 > "we estimate that the global number of trees is approximately 3.04 trillion (+/-0.096 trillion, 95% confidence intervals (CI))"
@@ -282,7 +297,7 @@ Mapping tree density at a global scale, [Nature](https://www.nature.com/articles
 
 Sometimes we can collect all the data in a population (eg, Albemarle County real estate data). The mean of the data is the mean. There is no uncertainty. 
 
-Most of the time we can only collect a sample (eg, voters, trees, cows). The mean of the sample data is _not_ the mean of the entire population. It is an estimate.
+Most of the time we can only collect a sample (eg, voters, trees, cows). The mean of the sample data is _not_ the mean of the entire population. It is an _estimate_.
 
 We often use the estimate as our best guess at the population mean. How uncertain is this estimate?
 
@@ -298,10 +313,10 @@ The spread of the sample means summarizes the uncertainty of our sample mean.
 
 In practice, we don't take thousands of means. We take one and we usually calculate standard error using a formula such as $sd/\sqrt{n}$.
 
-For example, a [study](https://www.sciencedirect.com/science/article/pii/S2314853516300555) estimated the mean weight of chicken eggs to be about 55.02 with a standard error of 0.40 when the chicken was 25 weeks old. 
+For example, a [study](https://www.sciencedirect.com/science/article/pii/S2314853516300555) estimated the mean weight of chicken eggs to be about 55.02g with a standard error of 0.40 when the chicken was 25 weeks old. 
 
 ::: callout-important
-Be cautious of interpreting sample statistics presented without standard errors.  
+Be cautious of interpreting estimates presented without standard errors.  
 :::
 
 ## Confidence Intervals
@@ -310,9 +325,11 @@ Adding and subtracting standard errors to our estimate forms an interval of what
 
 The most common interval calculated is the _95% confidence interval_ (CI).
 
-We say "95%" because the method should work 95% of the time based on how many standard errors we use to create the interval.
+We say "95%" because the method should work 95% of the time based on how many standard errors we add/subtract to create interval.
 
 We call it "confidence" because we are confident in the method. 
+
+## Confident in the process
 
 If we were to take thousands of samples and calculate thousands of 95% confidence intervals, about 95% of the intervals should contain the true value. 
 
@@ -322,13 +339,17 @@ The 95% confidence interval on the number of trees (in trillions) was [2.94, 3.1
 A confidence interval is _not_ a probability interval. Do not say there is a 95% probability the value is between the lower and upper bounds.
 :::
 
-## Cow painting
+Let's go to R.
 
-> Painting 'Zebra Stripes' on Cows Wards Off Biting Flies [source](https://www.realclearscience.com/quick_and_clear_science/2019/10/07/painting_zebra_stripes_on_cows_wards_off_biting_flies.html)
+## Cow painting
 
 > "The total numbers of biting flies on the legs and body for B&W cows were almost half those on Control (p < 0.0001)." [paper](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0223447)
 
+Painting 'Zebra Stripes' on Cows Wards Off Biting Flies [source](https://www.realclearscience.com/quick_and_clear_science/2019/10/07/painting_zebra_stripes_on_cows_wards_off_biting_flies.html)
+
 What does "p < 0.0001" mean?
+
+![](../images/zebra_cow.jpg){fig-alt="cow painted like zebra." fig-align="right"}
 
 ## Hypothesis testing and p-values
 
@@ -368,17 +389,95 @@ P-values are often misinterpreted and misused.
 4. They _do not_ measure the size of an effect or the importance of a result.
 
 See The American Statistical Association's [special issue](https://www.tandfonline.com/doi/full/10.1080/00031305.2019.1583913) on p-values. 
-P-values are just another measure. It should not be revered as the final word in any analysis. 
 
-## Differences
+::: callout-important
+P-values should not be revered as the final word in any analysis. 
+::: 
 
-## General ideas
+Let's go to R.
 
--   Be aware of what a statistic leaves out:
-    -   a mean doesn't tell you the range or the size of the data
-    -   a percent increase doesn't tell you the raw values
+
+## Is education risky?
+
+> Women with ≥3 years university education had increased risk of glioma (1.23, 1.08 to 1.40) and meningioma (1.16, 1.04 to 1.29) compared to those with primary education.
+
+> Poisson regression models were used to calculate incidence rate ratios (IRR) for brain tumours by different indicators of socioeconomic position (SEP), with adjustment for potential confounders.
+
+Socioeconomic position and the risk of brain tumour: a Swedish national population-based cohort study [source](https://jech.bmj.com/content/70/12/1222)
+
+What do they mean by _with adjustment for potential confounders_?
+
+## Conditional means
+
+The mean total value value of Albemarle homes is a little over \$500,000.
+
+```{r echo=TRUE}
+mean(d$totalvalue)
+```
+
+But the mean total value of Albemarle homes when they have 1,280 finished square is much lower.
+
+```{r echo=TRUE}
+mean(d$totalvalue[d$finsqft == 1280])
+```
+
+But the mean total value of Albemarle homes when they have 1,280 finished square and they have central air is a little higher.
+
+```{r echo=TRUE}
+mean(d$totalvalue[d$finsqft == 1280 & d$cooling == "Central Air"])
+```
+
+The expected value of a home appears to depend on certain features.
+
+## Linear Models
+
+A _linear model_ allows us to estimate expected values conditional on features or predictors.
+
+A linear model is a function of predictors. For example, here's a simple model:
+
+$$\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$ 
+
+Setting finsqft = 2000 and cooling = 1 (central air) returns:
+
+$$\text{total value} = 80,839 + 111(2000) + 49,396(1) = \$ 352,235$$ 
+
+It says each additional finished square foot adds \$111 to the expected value of a home. It also says a home with central air is expected to be worth almost \$50,000 than a home without central air. **This may not be a good model!**
+
+## No model is perfect
+
+A linear model attempts to _approximate_ the process that generated the data. It will always be wrong and uncertain, but hopefully it will be useful.
+
+We pick the model. 
+
+If we are satisfied with the model, we can use it to make predictions or summarize associations. 
+
+This is also referred to as _Multiple Regression_ or _Regression Modeling_.
+
+## Sources of uncertainty
+
+Consider this model again:
+
+$$\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$ 
+
+- The model may be bad. 
+- The _coefficients_ (80839, 111 and 49396) are uncertain.
+- A few homes may be unduly influencing how these coefficients are estimated.
+- Predicted total values are uncertain.
+
+
+## Building linear models 
+
+R is exceptionally good for building linear models. Perhaps too good.
+
+> "A computer lets you make more mistakes faster than any other invention with the possible exceptions of handguns and Tequila." -Mitch Ratcliffe 
+
+Building linear models in R is rather easy. Picking which predictors to include, specifying the model, and evaluating model performance is much harder.
+
+
 
 ## References
+
+The Art of Statistics
 
 Why I Don't Like Percents\
 https://www.fharrell.com/post/percent/

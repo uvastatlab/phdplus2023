@@ -9,36 +9,33 @@ library(tidyverse)
 URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/albemarle_homes_2023.rds"
 d <- readRDS(url(URL))
 
+# drop the Unasssigned homes from the data 
+d <- d %>% 
+  filter(hsdistrict != "Unassigned") %>% 
+  mutate(hsdistrict = droplevels(hsdistrict))
+
 
 # Counts and proportions --------------------------------------------------
 
 # how to create a cross tabulation
 xtabs(~ hsdistrict + fp, data = d)
 
-# drop the Unassigned row
-xtabs(~ hsdistrict + fp, data = d, 
-      subset = hsdistrict != "Unassigned", 
-      drop.unused.levels = TRUE)
-
-d %>% 
-  filter(hsdistrict != "Unassigned") %>% 
-  xtabs(~ hsdistrict + fp, data = ., drop.unused.levels = TRUE)
-
 # save table
-tab <- xtabs(~ hsdistrict + fp, data = d, 
-      subset = hsdistrict != "Unassigned", 
-      drop.unused.levels = TRUE)
+tab <- xtabs(~ hsdistrict + fp, data = d)
 
 # Given high school district, what proportion of homes do and do not have fireplaces? Condition on rows. (ie rows sum to 1)
-proportions(tab, margin = 1) |>
+tab %>% 
+  proportions(margin = 1) %>% 
   round(2)
 
 # Given homes with and without fireplaces, what proportions are in each high school district? Condition on columns (ie, columns sum to 1)
-proportions(tab, margin = 2) |>
+tab %>% 
+  proportions(margin = 2) %>% 
   round(2)
 
 # save table
-tab_p <- proportions(tab, margin = 1) |>
+tab_p <- tab %>% 
+  proportions(margin = 1) %>% 
   round(2)
 tab_p
 
@@ -58,16 +55,15 @@ tab_p[1, 2]/tab_p[2, 2]
 # We expect a given home in Albemarle is 0.25, or 25%, more likely to have a
 # fireplace than a home in Monticello.
 
+# Can also calculate proportions based on a condition.
 # Proportion of homes over 2000 fin sq ft in size
 mean(d$finsqft > 2000)
 
 # Proportion of homes with 3 or 4 bedrooms
 mean(d$bedroom %in% 3:4)
 
-mean(d$totalvalue < 580200)
-sum(d$totalvalue > 580200)
 
-## CODE ALONG 1
+# CODE ALONG 1 ------------------------------------------------------------
 
 # Compare the absolute and relative proportions of homes with no central air in
 # the Burley and Walton middle school districts.
@@ -111,7 +107,9 @@ tapply(d$totalvalue, d$hsdistrict, median)
 tapply(d$totalvalue, d$hsdistrict, summary) 
 
 # by 2 or more groups
+# returns a data frame
 aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
+# returns a matrix
 tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
 
 # Correlation
@@ -137,7 +135,9 @@ plot(bedroom ~ fullbath, data = d)
 # Jittering can help reveal where most of the data is located
 ggplot(d) +
   aes(x = fullbath, y = bedroom) +
-  geom_jitter(alpha = 1/5)
+  geom_jitter(alpha = 1/5) +
+  scale_x_continuous(breaks = 0:11, minor_breaks = FALSE) +
+  scale_y_continuous(breaks = 0:12, minor_breaks = FALSE)
 
 # Correlation matrix for more than 2 variables
 d %>% 
@@ -166,7 +166,9 @@ hist(log(d$totalvalue))
 hist(d$lotsize)
 hist(log(d$lotsize))
 
-## CODE ALONG 2
+
+# CODE ALONG 2 ------------------------------------------------------------
+
 
 
 # Uncertainty -------------------------------------------------------------
@@ -175,7 +177,7 @@ hist(log(d$lotsize))
 # random sample 30 total home values
 samp <- sample(d$totalvalue, 30)
 mean(samp)
-sd(samp)/sqrt(30)
+sd(samp)/sqrt(30)  # standard error of the mean
 
 # repeat 10,000 times
 means <- replicate(n = 10000, expr = {
@@ -186,25 +188,36 @@ sd(means) # standard error based on 10,000 means
 
 # add and subtract 2 standard errors from mean to form approximate 95%
 # confidence interval
-SE <- sd(means)
-mean(samp) + c(-1, 1)*2*SE
+SE_m <- sd(means)
+mean(samp) + c(-1, 1)*2*SE_m
 
 # a mathematical approach is provided via t.test()
 t.test(samp)
-# by hand
-qt(0.975, df = 29)
-mean(samp) + c(-1, 1)*2.04523*sd(samp)/sqrt(30)
 
 
 # uncertainty about a proportion
 # random sample of 30 homes' fireplace status
 samp2 <- sample(d$fp, 30)
 table(samp2)
-mean(samp2)
+mean(samp2, na.rm = TRUE)
 
-# quickly get a confidence interval
-prop.test(x = 22, n = 30)
-prop.test(x = 22, n = 30, correct = FALSE)
+# repeat 10,000 times
+props <- replicate(n = 10000, expr = {
+  samp2 <- sample(d$fp, 30)
+  mean(samp2, na.rm = TRUE)
+})
+sd(props) # standard error based on 10,000 means
+
+# add and subtract 2 standard errors from mean to form approximate 95%
+# confidence interval
+SE_p <- sd(props)
+mean(samp2) + c(-1, 1)*2*SE_p
+
+# a mathematical approach is provided via prop.test
+prop.test(x = sum(samp2), n = 30)
+prop.test(x = sum(samp2), n = 30, correct = FALSE)
+
+
 
 # 95% Confidence intervals
 # The process of calculating a confidence interval works 95% of the time
@@ -261,18 +274,14 @@ boot_mean <- replicate(n = 1000, expr = {
 # get 95% CI as 2.5 and 97.5 percentiles
 quantile(boot_mean, probs = c(0.025, 0.975))
 
-# How often does a bootstrap CI capture the true mean?
-ci_test_boot <- pbapply::pbreplicate(n = 1000, expr = {
-  boot_mean <- replicate(n = 1000, expr = {
-    tv_samp <- sample(tv, replace = TRUE)
-    mean(tv_samp)
-  })
-  boot_ci <- quantile(boot_mean, probs = c(0.025, 0.975))
-  boot_ci[1] < true_mean & boot_ci[2] > true_mean
-})
-mean(ci_test_boot)
 
-## CODE ALONG 3
+
+
+# CODE ALONG 3 ------------------------------------------------------------
+
+
+prop.test(x = sum(d$finsqft > 2000), 
+          n = nrow(d))
 
 # Hypothesis Testing ------------------------------------------------------
 
@@ -284,62 +293,142 @@ ggplot(energy) +
   aes(x = expend, fill = stature) +
   geom_density(alpha = 1/4)
 
+ggplot(energy) +
+  aes(y = stature, x = expend) +
+  geom_jitter(height = 0.05)
+
+
 aggregate(expend ~ stature, data = energy, mean)
+
+# Assuming no difference between lean and obese, what is probability we would
+# get data like this or more extreme (8.1 vs 10.3)?
 t.test(expend ~ stature, data = energy)
 
 
 
 # compare proportions
+# save table
+tab <- xtabs(~ hsdistrict + fp, data = d, 
+             subset = hsdistrict != "Unassigned", 
+             drop.unused.levels = TRUE)
+
+tab %>% 
+  proportions(margin = 1) %>% 
+  round(2)
+
+# Assuming no difference in proportion of fireplaces in Albemarle and Western
+# Albemarle high school districts, what is probability we would get data like
+# this or more extreme (0.79 vs 0.75)?
 addmargins(tab)
 prop.test(x = c(9962, 7014), n = c(12615, 9382))
 
 
-
-
-prop.test(x = sum(d$finsqft > 2000), 
-          n = nrow(d))
-
-
-
-# Means and Medians
-
-mean(d$totalvalue)
-median(d$totalvalue)
-summary(d$totalvalue)
-hist(d$totalvalue)
-
-
-
-
 aggregate(totalvalue ~ fp, data = d, mean)
-# not really necessary
-# also not appropriate to do after peeking at the data
+# not appropriate to do after peeking at the data
 t.test(totalvalue ~ fp, data = d)
 
-# HARKing: hypothesizing after the results are known
+# HARKing: Hypothesizing After the Results are Known
 
 
-# Correlation
-# visualize
-# limitations
-cor.test(~ totalvalue + finsqft, data = d)
-plot(totalvalue ~ finsqft, data = d)
-
-library(datasauRus)
-cor.test(~ dino_x + dino_y, datasaurus_dozen_wide)
-plot(dino_y ~ dino_x, data = datasaurus_dozen_wide)
-
-
-# linear model
-m <- lm(totalvalue ~ finsqft, data = d)
-coef(m)
-confint(m)
+# CODE ALONG 4 ------------------------------------------------------------
 
 
 
 
-# standard error is the standard deviation of a hypothetical sampling distribution
+# Modeling ----------------------------------------------------------------
 
+
+mean(d$totalvalue)
+mean(d$totalvalue[d$finsqft == 1280])
+mean(d$totalvalue[d$finsqft == 1280 & d$hsdistrict == "Albemarle"])
+
+library(ggeffects)
+
+# simple linear model (one predictor)
+m1 <- lm(totalvalue ~ finsqft, data = d)
+summary(m1)
+plot(m1, which = 1)
+ggpredict(m1, terms = "finsqft") %>% plot(add.data = TRUE)
+
+
+m2 <- lm(log(totalvalue) ~ finsqft, data = d)
+summary(m2)
+plot(m2, which = 1)
+ggpredict(m2, terms = "finsqft") %>% plot(add.data = TRUE)
+
+
+library(splines)
+m3 <- lm(log(totalvalue) ~ ns(finsqft, df = 3), data = d)
+summary(m3)
+plot(m3, which = 1)
+ggpredict(m3, terms = "finsqft") %>% plot(add.data = TRUE)
+
+# ANOVA (one categorical predictor)
+aov1 <- aov(log(totalvalue) ~ hsdistrict, data = d, 
+            subset = hsdistrict != "Unassigned")
+summary(aov1)
+# using lm()
+m4 <- lm(log(totalvalue) ~ hsdistrict, data = d, 
+         subset = hsdistrict != "Unassigned")
+summary(m4)
+anova(m4)
+
+# t-test (one binary predictor)
+t.test(log(totalvalue) ~ cooling, data = d)
+# using lm()
+m5 <- lm(log(totalvalue) ~ cooling, data = d)
+summary(m5)
+
+# multiple linear regression
+m6 <- lm(log(totalvalue) ~ ns(finsqft, df = 3) + hsdistrict + 
+           cooling, data = d,
+         subset = hsdistrict != "Unassigned")
+summary(m6)
+
+# Use model to make a prediction
+home <- data.frame(finsqft = 2500, hsdistrict = "Albemarle", 
+                   cooling = "Central Air")
+predict(m6, newdata = home, interval = "confidence")
+
+# convert to original scale
+predict(m6, newdata = home, interval = "confidence") %>% exp()
+
+
+# modeling a binary variable
+ggplot(d) +
+  aes(x = finsqft, y = fp) +
+  geom_point(alpha = 1/10, shape = ".") +
+  geom_smooth() +
+  scale_y_continuous(breaks = 0:1, minor_breaks = FALSE, limits = c(0,1))
+
+# logistic regression
+lrm1 <- glm(fp ~ finsqft, data = d, family = binomial)
+summary(lrm1)
+exp(coef(lrm1)["finsqft"])
+exp(coef(lrm1)["finsqft"]*100)
+
+home <- data.frame(finsqft = seq(1500,2000,100))
+predict(lrm1, newdata = home, type = "response")
+
+ggpredict(lrm1, terms = "finsqft[1500:2000 by=100]")
+
+# odds ratio by hand
+p1 <- 0.6055023
+p2 <- 0.6396780
+
+odds1 <- p1/(1 - p1)
+odds2 <- p2/(1 - p2)
+
+odds2/odds1
+# compare to
+exp(coef(lrm1)["finsqft"]*100)
+
+
+ggpredict(lrm1, terms = "finsqft") %>% plot()
+
+
+
+# CODE ALONG 5 ------------------------------------------------------------
 
 
 
@@ -368,3 +457,18 @@ odds2/odds1
 
 epitools::oddsratio(tab)
 
+
+
+# Appendix: bootstrap CI coverage -----------------------------------------
+
+
+# How often does a bootstrap CI capture the true mean?
+ci_test_boot <- pbapply::pbreplicate(n = 1000, expr = {
+  boot_mean <- replicate(n = 1000, expr = {
+    tv_samp <- sample(tv, replace = TRUE)
+    mean(tv_samp)
+  })
+  boot_ci <- quantile(boot_mean, probs = c(0.025, 0.975))
+  boot_ci[1] < true_mean & boot_ci[2] > true_mean
+})
+mean(ci_test_boot)
