@@ -5,6 +5,9 @@ format:
   revealjs:
     embed-resources: true
     smaller: true
+    scrollable: true
+    slide-number: true
+    footer: clayford@virginia.edu | GitHub [@clayford](https://github.com/clayford)
 ---
 
 ## Data Literacy
@@ -126,12 +129,12 @@ head(d$totalvalue, n = 200)
 
 We usually summarize numeric data by calculating some measure of the center and the spread.
 
--   *Center* is usually interpreted as the most representative value.
+-   *Center* is usually interpreted as the most representative value. That's not always correct.
 -   *Spread* is usually interpreted as how far away we can expect any value to be from the center value.
 
 The most common measures of center are the **mean** and **median**.
 
-The most common measures of spread are the **standard deviation (SD)** and **interquartile range (IQR)**.
+The most common measures of spread are the **standard deviation (SD)** and **interquartile range (IQR)**. 
 
 ## Mean and Median
 
@@ -141,7 +144,7 @@ The median is the middle point of data sorted in ascending order.
 
 When data are *symmetric*, the mean and median are close.
 
-When data are *skewed*, the median tends to be a better measure of center or typical value.
+When data are *skewed*, the median may be a better measure of center or typical value.
 
 ::: callout-tip
 In practice you should *examine both* if planning to present a summary of data.
@@ -178,22 +181,6 @@ f(x = y4)
 par(op)
 ```
 
-## The `summary()` function
-
-The `summary()` function when used with a numeric vector (or column) of data returns 6 values (7 if you have missing data):
-
-1.  The smallest value
-2.  The 25th percentile (value below which lies 25% of the data)
-3.  The median (the 50th percentile)
-4.  The mean
-5.  The 75th percentile (value below which lies 75% of the data)
-6.  The largest value
-
-```{r echo=TRUE}
-summary(d$lastsaleprice)
-```
-
-It appears the data is skewed *right* since the mean is larger than the median. A histogram and the `summary()` function can tell you a lot about your data.
 
 ## Standard Deviation and IQR
 
@@ -206,7 +193,44 @@ sd(d$totalvalue)
 IQR(d$totalvalue)
 ```
 
-As summaries of data, they can be confusing if your audience is not familiar with the concept of *spread*.
+As summaries of data, they can be confusing if your audience is not familiar with the concept of spread.
+
+## Percentiles/Quantiles/Quartiles
+
+Observe the summary output for Albemarle Real Estate home values:
+
+```{r echo=TRUE}
+summary(d$totalvalue)
+```
+
+The value labeled "1st Qu.", `r scales::dollar(as.integer(quantile(d$totalvalue, probs = 0.25)))`, is the 1st quartile, 0.25 quantile, and 25th percentile. 
+
+- 1st quartile = the value below which lies one quarter (1/4) of the data
+- 0.25 quantile = the value below which lies 0.25 of data
+- 25th percentile = the value below which lies 25% of data
+
+The median is the 2nd quartile, 0.5 quantile, and 50th percentile.
+
+The `quantile()` function can return any quantile/percentile you desire. 
+
+## Empirical Cumulative Distributions
+
+The output below says homes valued at \$855,430 are in the 90th percentile of homes. 90% of homes are valued lower.
+
+```{r echo=TRUE}
+quantile(d$totalvalue, probs = 0.90)
+```
+
+What percentile is a home valued at \$350,000 in? To answer this we need to determine the _Empirical cumulative distribution_. R makes this relatively easy with the `ecdf()` function.
+
+The `ecdf()` function actually creates a function from your data. You then use that function to get the quantile/percentile of a given data point.
+
+```{r echo=TRUE}
+Fn <- ecdf(d$totalvalue)
+Fn(350000)
+```
+
+A home valued at \$350,000 is in about the 37th percentile.
 
 ## Transforming data
 
@@ -226,7 +250,7 @@ They are also appropriate when large data values can be assumed to be bigger in 
 
 ## Before and After
 
-Notice how total value goes from ranging from 4200 - 8,000,000 to about 10 - 16.
+Notice how total value goes from ranging from 4200 - 8,000,000 to about 10 - 16 after a log transformation.
 
 ```{r}
 op <- par(mfrow = c(1,2), pty = "s")
@@ -254,7 +278,7 @@ plot(totalvalue ~ finsqft, data = samp_d)
 
 Correlation is a single value that can (sometimes) summarize a relationship between two sets of numeric data.
 
-Correlation is unitless and ranges from -1 to 1. It expresses how close dots fall along a straight line. [Wikipedia illustration](https://en.wikipedia.org/wiki/Correlation_and_dependence#/media/File:Correlation_examples2.svg)
+Correlation is unitless and ranges from -1 to 1. It expresses how close dots fall along a straight line. [See this useful Wikipedia illustration](https://en.wikipedia.org/wiki/Correlation_and_dependence#/media/File:Correlation_examples2.svg)
 
 **Pearson** correlation measures linear association.\
 **Spearman** *rank* correlation can measure non-linear association such as curved lines.
@@ -297,7 +321,7 @@ Mapping tree density at a global scale, [Nature](https://www.nature.com/articles
 
 Sometimes we can collect all the data in a population (eg, Albemarle County real estate data). The mean of the data is the mean. There is no uncertainty. 
 
-Most of the time we can only collect a sample (eg, voters, trees, cows). The mean of the sample data is _not_ the mean of the entire population. It is an _estimate_.
+Most of the time we can only collect a sample (eg, voters, trees, cows). Hopefully it's a _random sample_. The mean of the sample data is _not_ the mean of the entire population. It is an _estimate_.
 
 We often use the estimate as our best guess at the population mean. How uncertain is this estimate?
 
@@ -309,7 +333,7 @@ Imagine randomly sampling 30 UVA students, weighing their backbacks, and taking 
 
 Now calculate the standard deviation of those means. That's the _standard error_.
 
-The spread of the sample means summarizes the uncertainty of our sample mean.
+The standard deviation of the sample means summarizes the uncertainty of our sample mean.
 
 In practice, we don't take thousands of means. We take one and we usually calculate standard error using a formula such as $sd/\sqrt{n}$.
 
@@ -318,6 +342,27 @@ For example, a [study](https://www.sciencedirect.com/science/article/pii/S231485
 ::: callout-important
 Be cautious of interpreting estimates presented without standard errors.  
 :::
+
+## The Central Limit Theorem
+
+Previously we saw distributions of _raw data_ for which the standard deviation was not a good measure of spread.
+
+However it turns out the distribution of means calculated from most any distribution is pretty symmetric! This is the _Central Limit Theorem_. This means we can be fairly confident about standard error estimates.
+
+```{r}
+set.seed(1234)
+means <- replicate(n = 1000, expr = {
+  mean(rchisq(n = 30, df = 3))
+})
+
+op <- par(mfrow = c(1,2), pty = "s")
+curve(dchisq(x, df = 3), from = 0, to = 10, ylab = "", xlab = "", 
+      main = "skewed population\nmean = 3")
+plot(density(means), ylab = "", xlab = "", main = "distribution of 1000 means\nfrom skewed population (n=30)")
+par(op)
+```
+
+
 
 ## Confidence Intervals
 
@@ -372,7 +417,9 @@ Hypothesis testing estimates the probability of obtaining the data we collected 
 
 What is the probability a cow painted like a zebra would have less fly bites than an unpainted cow, _assuming the paint job had no effect_? The authors state p < 0.0001.
 
-Historically p-values < 0.05 have been interpreted as "statistically significant".
+Historically p-values < 0.05 have been interpreted as "statistically significant", though many prominent statisticians are [now calling to abolish that threshold](https://www.tandfonline.com/doi/full/10.1080/00031305.2019.1583913).
+
+Nevertheless, p-values have been published, and will likely continue to be published, so it pays to know what they mean.
 
 ::: callout-tip
 When you see a p-value, think "probability of the data, or more extreme data, assuming a null hypothesis was true."
@@ -441,7 +488,11 @@ Setting finsqft = 2000 and cooling = 1 (central air) returns:
 
 $$\text{total value} = 80,839 + 111(2000) + 49,396(1) = \$ 352,235$$ 
 
-It says each additional finished square foot adds \$111 to the expected value of a home. It also says a home with central air is expected to be worth almost \$50,000 than a home without central air. **This may not be a good model!**
+It says each additional finished square foot adds \$111 to the expected value of a home. It also says a home with central air is expected to be worth almost \$50,000 than a home without central air. 
+
+If we were interested in finsqft, we might say we have adjusted for the potential confounder cooling. 
+
+**By the way, this may not be a good model!**
 
 ## No model is perfect
 
@@ -453,17 +504,40 @@ If we are satisfied with the model, we can use it to make predictions or summari
 
 This is also referred to as _Multiple Regression_ or _Regression Modeling_.
 
-## Sources of uncertainty
+## Model uncertainty
 
 Consider this model again:
 
 $$\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$ 
 
-- The model may be bad. 
-- The _coefficients_ (80839, 111 and 49396) are uncertain.
+- The model may be bad. (Wrong predictors, left out predictors, not additive.)
+- The _coefficients_ (80839, 111 and 49396) are just estimates. They're uncertain.
 - A few homes may be unduly influencing how these coefficients are estimated.
 - Predicted total values are uncertain.
 
+## Model assumptions
+
+Our model is approximate, not perfect. It's always going to be off by some random amount. Let's update it as follows:
+
+$$\text{total value} = \color{blue}{80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}} + \color{red}{\text{ERROR}}$$ 
+
+Our model has two parts:
+
+1. The [fixed]{style="color:blue;"} part
+2. The [random error]{style="color:red;"} part
+
+When we fit a model we have to make assumptions about the random errors. We assume they are random draws from a _probability distribution_.
+
+
+## The dependent variable
+
+The probability distribution for the random error _depends_ on what value we're modeling. 
+
+- Home values might use a Normal distribution
+- Incidents of brain tumors might use a Poisson distribution
+- Defaulting on loan might use a Binomial distribution
+
+These all have different names - linear model, count model, logistic regression - but they do the same thing: approximate the expected value of some variable given predictors of interest.
 
 ## Building linear models 
 
@@ -473,7 +547,23 @@ R is exceptionally good for building linear models. Perhaps too good.
 
 Building linear models in R is rather easy. Picking which predictors to include, specifying the model, and evaluating model performance is much harder.
 
+::: callout-tip
+Controlled paranoia is useful for building and interpreting linear models.
+::: 
 
+## It's all linear models
+
+Many statistical tests are special cases of a linear model.
+
+- 1-sample t-test: linear model with just an intercept
+- 2-sample t-test: linear model with a binary predictor
+- ANOVA: linear model with a categorical predictor
+- 2-way ANOVA: linear model with two categorical predictors
+- ANCOVA: linear model with a numeric predictor and categorical predictor
+
+More information: [Common statistical tests are linear models (or: how to teach stats)](https://lindeloev.github.io/tests-as-linear/)
+
+Let's go to R!
 
 ## References
 
@@ -484,3 +574,6 @@ https://www.fharrell.com/post/percent/
 
 Statistics Notes: What is a percentage difference?\
 https://www.bmj.com/content/358/bmj.j3663
+
+Statistical Thinking for the 21st Century\
+https://statsthinking21.github.io/statsthinking21-core-site/

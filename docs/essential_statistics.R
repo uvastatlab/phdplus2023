@@ -9,7 +9,7 @@ library(tidyverse)
 URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/albemarle_homes_2023.rds"
 d <- readRDS(url(URL))
 
-# drop the Unasssigned homes from the data 
+# drop the Unasssigned hsdistrict homes from the data 
 d <- d %>% 
   filter(hsdistrict != "Unassigned") %>% 
   mutate(hsdistrict = droplevels(hsdistrict))
@@ -85,26 +85,55 @@ tp["Burley", "No Central Air"]/tp["Walton", "No Central Air"]
 # summary() and hist() make a powerful combination
 summary(d$lotsize)
 hist(d$lotsize)
+# use breaks to increase/decrease number of bins
+hist(d$lotsize, breaks = 100)
 
-# discrete data are better visualized with a bar plot
+# standard deviation and IQR
+sd(d$totalvalue)
+IQR(d$totalvalue)
+
+# discrete data 
 summary(d$bedroom)
 hist(d$bedroom)
+
+# better visualized with a bar plot
 plot(table(d$bedroom))
 barplot(table(d$bedroom))
 
+# ggplot makes it pretty easy to add axis tick mark for 11
 ggplot(d) +
   aes(x = bedroom) +
   geom_bar() +
   scale_x_continuous(breaks = 0:12, minor_breaks = FALSE)
 
-# Means/Medians/summaries by group
+# quantiles/percentiles
+# given the quantile/percentile what's the value?
+quantile(d$totalvalue)
+quantile(d$totalvalue, probs = 1:9/10)
+quantile(d$totalvalue, probs = 1:19/20)
+
+# Empirical cumulative distribution (ECD)
+# inverse of quantile
+# given the value, what's the quantile/percentile?
+Fn <- ecdf(d$totalvalue)
+Fn(500000) # 66th percentile
+Fn(1e6)    # 93rd percentile
+
+# we can plot the ECD
+plot(Fn)
+
+# summaries by group
+# returns a data frame
 aggregate(totalvalue ~ hsdistrict, data = d, mean)
 aggregate(totalvalue ~ hsdistrict, data = d, median)
+aggregate(totalvalue ~ hsdistrict, data = d, IQR)
 aggregate(totalvalue ~ hsdistrict, data = d, summary) # kind of messy
 
+# returns a vector or list
 tapply(d$totalvalue, d$hsdistrict, mean)
 tapply(d$totalvalue, d$hsdistrict, median)
-tapply(d$totalvalue, d$hsdistrict, summary) 
+tapply(d$totalvalue, d$hsdistrict, IQR)
+tapply(d$totalvalue, d$hsdistrict, summary)  # list
 
 # by 2 or more groups
 # returns a data frame
@@ -112,12 +141,35 @@ aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
 # returns a matrix
 tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
 
+
+# A matrix is desirable for reporting
+# A data frame is desirable for plotting 
+m_df <- aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
+ggplot(m_df) +
+  aes(x = hsdistrict, y = totalvalue, color = cooling, group = cooling) +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = 'Median home values by HS District and Central Air status')
+
+
+# summaries available in packages
+psych::describe(d$totalvalue)
+Hmisc::describe(d$totalvalue)
+
 # Correlation
+# summarize linear relationship between finsqft and totalvalue
 cor(d$finsqft, d$totalvalue, method = "pearson")
 cor(d$finsqft, d$totalvalue, method = "spearman")
 
 # Correlation should always be accompanied by a scatter plot
-plot(totalvalue ~ finsqft, data = d)
+
+# the smooth trend line can help us assess the nature of the linear relationship
+# (if any exists)
+ggplot(d) +
+  aes(x = finsqft, y = totalvalue) +
+  geom_point() +
+  geom_smooth()
 
 # correlation between bedrooms and full bathrooms
 cor(d$bedroom, d$fullbath) # Why NA?
@@ -141,49 +193,85 @@ ggplot(d) +
 
 # Correlation matrix for more than 2 variables
 d %>% 
-  select(finsqft, lotsize, totalvalue) %>% 
+  select(totalvalue, finsqft, lotsize) %>% 
   cor()
 
-# Base 10 log transformations
-# what power do we raise 10 to get x?
-x <- c(10, 100, 1000, 10000, 100000)
-log10(x) # number of zeroes after 1 (ie, orders of magnitude)
+# quick way to visualize all pairwise scatterplots
+d %>% 
+  select(totalvalue, finsqft, lotsize) %>% 
+  pairs()
 
+# Log transformations
+# Take positive, skewed data and hopefully make it more symmetric.
+# values clumped together get spread apart,
+# values far away are moved closer to the rest of the data
 
-# natural log
-# what power do we raise e to get x?
-log(x)
+hist(d$totalvalue)
+hist(log(d$totalvalue))
 
-# to undo a log transformation we take the "anti-log", or exponentiate
+# to undo a log transformation we take the "anti-log", or exponentiate using the
+# exp() function.
+x <- 1200000
 logx <- log(x)
 logx
 exp(logx)
 
-# before/after log transformation
-hist(d$totalvalue)
-hist(log(d$totalvalue))
-
-hist(d$lotsize)
-hist(log(d$lotsize))
+# mean of untransformed data
+mean(d$totalvalue)
+# mean of log transformed data
+mean(log(d$totalvalue))
+# mean of log transformed data returned to original scale,
+# sometimes called "geometric mean"
+exp(mean(log(d$totalvalue)))
 
 
 # CODE ALONG 2 ------------------------------------------------------------
 
+# (1) summarize finsqft numerically and visually
+summary(d$finsqft)
+hist(d$finsqft)
 
+# (2) What is the 90th percentile of finsqft? In what percentile is 1500
+# finsqft?
+quantile(d$finsqft, probs = 0.90)
+Fsq <- ecdf(d$finsqft)
+Fsq(1500)
+
+# (3) what is the correlation between finsqft and totalrooms (presumably they're
+# correlated)? Compare the correlation to a scatter plot between the two
+# variables.
+cor(d$finsqft, d$totalrooms, use = "complete.obs")
+cor(d$finsqft, d$totalrooms, use = "complete.obs", method = "spearman")
+
+ggplot(d) +
+  aes(x = totalrooms, y = finsqft) +
+  geom_point() +
+  geom_smooth()
+
+# (4) summarize the log-transformed improvements value. What do we notice?
+summary(d$improvementsvalue)
+hist(d$improvementsvalue, breaks = 200)
+summary(log(d$improvementsvalue))
+summary(log(d$improvementsvalue[d$improvementsvalue > 0]))
+
+d %>% 
+  filter(improvementsvalue > 0) %>% 
+  summarise(m = exp(mean(log(improvementsvalue))))
 
 # Uncertainty -------------------------------------------------------------
 
 # uncertainty about a mean
-# random sample 30 total home values
-samp <- sample(d$totalvalue, 30)
+# random sample 50 total home values
+samp <- sample(d$totalvalue, 50)
 mean(samp)
-sd(samp)/sqrt(30)  # standard error of the mean
+sd(samp)/sqrt(50)  # standard error of the mean
 
 # repeat 10,000 times
 means <- replicate(n = 10000, expr = {
-  samp <- sample(d$totalvalue, 30)
+  samp <- sample(d$totalvalue, 50)
   mean(samp)
 })
+hist(means)
 sd(means) # standard error based on 10,000 means
 
 # add and subtract 2 standard errors from mean to form approximate 95%
@@ -192,20 +280,24 @@ SE_m <- sd(means)
 mean(samp) + c(-1, 1)*2*SE_m
 
 # a mathematical approach is provided via t.test()
+# This is what we typically do in practice
 t.test(samp)
+t.test(samp)$conf.int
+Hmisc::smean.cl.normal(samp)
 
 
 # uncertainty about a proportion
-# random sample of 30 homes' fireplace status
-samp2 <- sample(d$fp, 30)
+# random sample of 50 homes' fireplace status
+samp2 <- sample(d$fp, 50)
 table(samp2)
 mean(samp2, na.rm = TRUE)
 
 # repeat 10,000 times
 props <- replicate(n = 10000, expr = {
-  samp2 <- sample(d$fp, 30)
+  samp2 <- sample(d$fp, 50)
   mean(samp2, na.rm = TRUE)
 })
+hist(props)
 sd(props) # standard error based on 10,000 means
 
 # add and subtract 2 standard errors from mean to form approximate 95%
@@ -214,15 +306,14 @@ SE_p <- sd(props)
 mean(samp2) + c(-1, 1)*2*SE_p
 
 # a mathematical approach is provided via prop.test
-prop.test(x = sum(samp2), n = 30)
-prop.test(x = sum(samp2), n = 30, correct = FALSE)
+prop.test(x = sum(samp2), n = 50)
+prop.test(x = sum(samp2), n = 50, correct = FALSE)
 
 
 
 # 95% Confidence intervals
 # The process of calculating a confidence interval works 95% of the time
 # The "95%" is based on tradition. Can do 89%, 78%, etc.
-
 z <- rnorm(30, mean = 10, sd = 2)
 tout <- t.test(z)
 tout$conf.int[1] < 10 & tout$conf.int[2] > 10
@@ -238,21 +329,22 @@ mean(ci_test)
 # Try it with very skewed homes total values
 true_mean <- mean(d$totalvalue)
 true_mean
-samp <- sample(d$totalvalue, 30)
+samp <- sample(d$totalvalue, 50)
 tout <- t.test(samp)
 tout$conf.int[1] < true_mean & tout$conf.int[2] > true_mean
 
 ci_test <- replicate(n = 1000, expr = {
-  samp <- sample(d$totalvalue, 30, replace = TRUE)
+  samp <- sample(d$totalvalue, 50, replace = TRUE)
   tout <- t.test(samp)
   tout$conf.int[1] < true_mean & tout$conf.int[2] > true_mean
 })
 mean(ci_test)
+# coverage is actually not 95%!
 
 # Try it with log-transformed home values
 true_log_mean <- mean(log(d$totalvalue))
 ci_test_log <- replicate(n = 1000, expr = {
-  samp <- sample(d$totalvalue, 30, replace = TRUE)
+  samp <- sample(d$totalvalue, 50, replace = TRUE)
   tout <- t.test(log(samp))
   tout$conf.int[1] < true_log_mean & tout$conf.int[2] > true_log_mean
 })
@@ -264,7 +356,7 @@ mean(ci_test_log)
 # the population.
 
 # take our one sample
-tv <- sample(d$totalvalue, 30)
+tv <- sample(d$totalvalue, 50)
 
 # now resample from sample with replacement
 boot_mean <- replicate(n = 1000, expr = {
@@ -274,7 +366,8 @@ boot_mean <- replicate(n = 1000, expr = {
 # get 95% CI as 2.5 and 97.5 percentiles
 quantile(boot_mean, probs = c(0.025, 0.975))
 
-
+# or just smean.cl.boot() function from the Hmisc package
+Hmisc::smean.cl.boot(tv)
 
 
 # CODE ALONG 3 ------------------------------------------------------------
@@ -338,30 +431,89 @@ t.test(totalvalue ~ fp, data = d)
 # Modeling ----------------------------------------------------------------
 
 
-mean(d$totalvalue)
-mean(d$totalvalue[d$finsqft == 1280])
-mean(d$totalvalue[d$finsqft == 1280 & d$hsdistrict == "Albemarle"])
-
 library(ggeffects)
 
+# Look at the distribution of total values.
+# Obviously there is a great deal of variability in the value of a home.
+# What might explain that variability?
+
+hist(d$totalvalue, breaks = 40)
+
+# Notice some of that variability appears to be associated with finsqft
+plot(totalvalue ~ finsqft, data = d)
+
+# We can attempt to model the value of a home using a linear model
+
 # simple linear model (one predictor)
+# model totalvalue as a function of finsqft (totalvalue ~ finsqft)
+# save to an object called "m1"
 m1 <- lm(totalvalue ~ finsqft, data = d)
 summary(m1)
+coef(m1)
+
+# Model:
+# totalvalue = -164163.6587 + 314.6012*finsqft + ERROR
+# ERROR ~ N(0, 259300) 
+# ERROR drawn from a Normal dist with mean = 0 and sd = 259300
+
+# Is this a good model? 
+# Look at residuals versus fitted value plot
+# residual = observed value - fitted value
 plot(m1, which = 1)
-ggpredict(m1, terms = "finsqft") %>% plot(add.data = TRUE)
 
+# the model under-predicts totalvalue for number of homes
+# for home 11719, it's off by about 6 million dollars
+d[11719, "totalvalue"]
 
-m2 <- lm(log(totalvalue) ~ finsqft, data = d)
+# Use predict() to make model predictions
+# Model predictions expected to be off by about $260,000
+predict(m1, newdata = data.frame(finsqft = 1800))
+predict(m1, newdata = data.frame(finsqft = 1800), interval = "confidence")
+
+# Visualize model;
+# For homes under 2.5 million and less than 5000 finsqft, it seems ok.
+ggpredict(m1, terms = "finsqft") %>% 
+  plot(add.data = TRUE)
+
+# Now add cooling to model
+m2 <- lm(totalvalue ~ finsqft + cooling, data = d)
 summary(m2)
+coef(m2)
+
 plot(m2, which = 1)
-ggpredict(m2, terms = "finsqft") %>% plot(add.data = TRUE)
+
+# Visualize model;
+ggpredict(m2, terms = c("finsqft", "cooling")) %>% 
+  plot(add.data = TRUE)
 
 
-library(splines)
-m3 <- lm(log(totalvalue) ~ ns(finsqft, df = 3), data = d)
+# log transform totalvalue
+m3 <- lm(log(totalvalue) ~ finsqft + cooling, data = d)
 summary(m3)
+coef(m3)
 plot(m3, which = 1)
-ggpredict(m3, terms = "finsqft") %>% plot(add.data = TRUE)
+ggpredict(m3, terms = c("finsqft", "cooling")) %>% 
+  plot(add.data = TRUE)
+
+# non-linear effect of finsqft using natural splines
+library(splines)
+m4 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) + cooling, data = d)
+summary(m4)
+plot(m4, which = 1)
+ggpredict(m4, terms = c("finsqft", "cooling")) %>% 
+  plot(add.data = TRUE)
+
+# allow effect of finsqft to interact with cooling
+# The effect of finsqft depends on cooling
+m5 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) * cooling, data = d)
+summary(m5)
+plot(m5, which = 1)
+ggpredict(m5, terms = c("finsqft", "cooling")) %>% 
+  plot()
+
+# can use ggpredict to see predictions and 95% CIs
+eff <- ggpredict(m5, terms = c("finsqft[1000:3000 by=500]", "cooling")) %>% 
+  plot()
 
 # ANOVA (one categorical predictor)
 aov1 <- aov(log(totalvalue) ~ hsdistrict, data = d, 
