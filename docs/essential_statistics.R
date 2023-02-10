@@ -2,28 +2,48 @@
 # Clay Ford
 # Spring 2023
 
-
+# Load packages we'll use today
+# In the first line, we only load two functions from the Hmisc package 
+library(Hmisc, include.only = c("smean.cl.normal", "smean.cl.boot"))
 library(tidyverse)
+library(ggeffects)
 
 # Read in data from GitHub
 URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/albemarle_homes_2023.rds"
 d <- readRDS(url(URL))
 
-# drop the Unasssigned hsdistrict homes from the data 
+# drop homes that are not assigned to a hsdistrict and then drop the unusued level 
 d <- d %>% 
-  filter(hsdistrict != "Unassigned") %>% 
-  mutate(hsdistrict = droplevels(hsdistrict))
+  filter(hsdistrict != "Unassigned") %>%  
+  mutate(hsdistrict = droplevels(hsdistrict),
+         msdistrict = droplevels(msdistrict),
+         esdistrict = droplevels(esdistrict))
 
 
 # Counts and proportions --------------------------------------------------
 
-# how to create a cross tabulation
+# create a cross tabulation using xtabs()
+# ~ rows + columns
+# cross tabulation of hsdistrict and fp (fireplace status)
 xtabs(~ hsdistrict + fp, data = d)
 
 # save table
 tab <- xtabs(~ hsdistrict + fp, data = d)
 
-# Given high school district, what proportion of homes do and do not have fireplaces? Condition on rows. (ie rows sum to 1)
+# portions of table can be extracted with indexing brackets
+# row 1
+tab[1,]
+# column 1
+tab[,1]
+# row 1, column 2
+tab[1,2]
+
+# Can also use row and column names 
+tab["Albemarle", ]
+tab[, "1"]
+tab["Albemarle", "1"]
+
+# Given high school district, what proportion of homes do and do not have fireplaces? Condition on rows. (ie, rows sum to 1)
 tab %>% 
   proportions(margin = 1) %>% 
   round(2)
@@ -33,13 +53,13 @@ tab %>%
   proportions(margin = 2) %>% 
   round(2)
 
-# save table
+# save table of proportions
 tab_p <- tab %>% 
   proportions(margin = 1) %>% 
   round(2)
 tab_p
 
-# what's the difference in proportion of homes with a fireplace between
+# What's the difference in proportion of homes with a fireplace between
 # Albemarle and Monticello? 
 
 # absolute difference = 0.16 or 16%
@@ -55,8 +75,9 @@ tab_p[1, 2]/tab_p[2, 2]
 # We expect a given home in Albemarle is 0.25, or 25%, more likely to have a
 # fireplace than a home in Monticello.
 
-# Can also calculate proportions based on a condition.
+# Can also calculate counts and proportions based on a condition.
 # Proportion of homes over 2000 fin sq ft in size
+sum(d$finsqft > 2000)
 mean(d$finsqft > 2000)
 
 # Proportion of homes with 3 or 4 bedrooms
@@ -65,8 +86,8 @@ mean(d$bedroom %in% 3:4)
 
 # CODE ALONG 1 ------------------------------------------------------------
 
-# Compare the absolute and relative proportions of homes with no central air in
-# the Burley and Walton middle school districts.
+# (1) Compare the absolute and relative proportions of homes with no central air
+# in the Burley and Walton middle school districts.
 tp <- xtabs(~ msdistrict + cooling, data = d) %>% 
   proportions(margin = 1) %>% 
   round(3)
@@ -78,7 +99,8 @@ tp["Burley", "No Central Air"] - tp["Walton", "No Central Air"]
 # relative
 tp["Burley", "No Central Air"]/tp["Walton", "No Central Air"]
 
-
+# (2) What proportion of homes are on more than 1 acre of land (lotsize)
+mean(d$lotsize > 1)
 
 # Summarizing numeric data ------------------------------------------------
 
@@ -89,8 +111,8 @@ hist(d$lotsize)
 hist(d$lotsize, breaks = 100)
 
 # standard deviation and IQR
-sd(d$totalvalue)
-IQR(d$totalvalue)
+sd(d$lotsize)
+IQR(d$lotsize)
 
 # discrete data 
 summary(d$bedroom)
@@ -134,6 +156,7 @@ tapply(d$totalvalue, d$hsdistrict, mean)
 tapply(d$totalvalue, d$hsdistrict, median)
 tapply(d$totalvalue, d$hsdistrict, IQR)
 tapply(d$totalvalue, d$hsdistrict, summary)  # list
+tapply(d$totalvalue, d$hsdistrict, quantile)  # list
 
 # by 2 or more groups
 # returns a data frame
@@ -144,6 +167,8 @@ tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
 
 # A matrix is desirable for reporting
 # A data frame is desirable for plotting 
+
+# For example, make data frame for plotting
 m_df <- aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
 ggplot(m_df) +
   aes(x = hsdistrict, y = totalvalue, color = cooling, group = cooling) +
@@ -179,7 +204,7 @@ summary(d$bedroom)
 summary(d$fullbath)
 
 # When data is missing can specify use = "complete.obs"
-cor(d$bedroom, d$fullbath, use = "complete.obs") # Why NA?
+cor(d$bedroom, d$fullbath, use = "complete.obs")
 
 # It's worth noting this is very discrete data
 plot(bedroom ~ fullbath, data = d)
@@ -207,6 +232,7 @@ d %>%
 # values far away are moved closer to the rest of the data
 
 hist(d$totalvalue)
+# log transformed histogram
 hist(log(d$totalvalue))
 
 # to undo a log transformation we take the "anti-log", or exponentiate using the
@@ -246,7 +272,8 @@ cor(d$finsqft, d$totalrooms, use = "complete.obs", method = "spearman")
 ggplot(d) +
   aes(x = totalrooms, y = finsqft) +
   geom_point() +
-  geom_smooth()
+  geom_smooth() +
+  xlim(0, 20)
 
 # (4) summarize the log-transformed improvements value. What do we notice?
 summary(d$improvementsvalue)
@@ -260,8 +287,11 @@ d %>%
 
 # Uncertainty -------------------------------------------------------------
 
-# uncertainty about a mean
+# Uncertainty about a mean
 # random sample 50 total home values
+
+# Recall: we have all the data! This is for illustration purposes, as if we only
+# had a random sample of homes.
 samp <- sample(d$totalvalue, 50)
 mean(samp)
 sd(samp)/sqrt(50)  # standard error of the mean
@@ -279,17 +309,18 @@ sd(means) # standard error based on 10,000 means
 SE_m <- sd(means)
 mean(samp) + c(-1, 1)*2*SE_m
 
-# a mathematical approach is provided via t.test()
-# This is what we typically do in practice
+# The above was for educational purposes;
+# In practice we would do something like this using t.test()
 t.test(samp)
 t.test(samp)$conf.int
+
+# The Hmisc package provides the smean.cl.normal() function that returns the
+# means and the lower/upper limits.
 Hmisc::smean.cl.normal(samp)
 
-
-# uncertainty about a proportion
+# Uncertainty about a proportion
 # random sample of 50 homes' fireplace status
 samp2 <- sample(d$fp, 50)
-table(samp2)
 mean(samp2, na.rm = TRUE)
 
 # repeat 10,000 times
@@ -303,27 +334,32 @@ sd(props) # standard error based on 10,000 means
 # add and subtract 2 standard errors from mean to form approximate 95%
 # confidence interval
 SE_p <- sd(props)
-mean(samp2) + c(-1, 1)*2*SE_p
+mean(samp2, na.rm = TRUE) + c(-1, 1)*2*SE_p
 
-# a mathematical approach is provided via prop.test
-prop.test(x = sum(samp2), n = 50)
-prop.test(x = sum(samp2), n = 50, correct = FALSE)
-
-
+# The above was for educational purposes;
+# In practice we would do something like this using prop.test()
+prop.test(x = sum(samp2, na.rm = TRUE), n = 50)
+prop.test(x = sum(samp2, na.rm = TRUE), n = 50, correct = FALSE)
 
 # 95% Confidence intervals
-# The process of calculating a confidence interval works 95% of the time
+# The process of calculating a confidence interval works 95% of the time;
 # The "95%" is based on tradition. Can do 89%, 78%, etc.
+
+# sample 30 values from a Normal distribution with mean 10 and sd 2
 z <- rnorm(30, mean = 10, sd = 2)
+# calculate confidence interval on estimated mean
 tout <- t.test(z)
+# is true value contained in confidence interval
 tout$conf.int[1] < 10 & tout$conf.int[2] > 10
 
+# repeat 1000 times
 ci_test <- replicate(n = 1000, expr = {
   z <- rnorm(30, mean = 10, sd = 2)
   tout <- t.test(z)
   tout$conf.int[1] < 10 & tout$conf.int[2] > 10
 })
 
+# proportion of times CI contains 10
 mean(ci_test)
 
 # Try it with very skewed homes total values
@@ -355,7 +391,7 @@ mean(ci_test_log)
 # However we can do something called "bootstrapping" that treats the sample like
 # the population.
 
-# take our one sample
+# take one sample
 tv <- sample(d$totalvalue, 50)
 
 # now resample from sample with replacement
@@ -366,72 +402,145 @@ boot_mean <- replicate(n = 1000, expr = {
 # get 95% CI as 2.5 and 97.5 percentiles
 quantile(boot_mean, probs = c(0.025, 0.975))
 
-# or just smean.cl.boot() function from the Hmisc package
+# or use smean.cl.boot() function from the Hmisc package
 Hmisc::smean.cl.boot(tv)
 
+# Bootstrapping works well for creating confidence intervals for medians
+boot_median <- replicate(n = 1000, expr = {
+  tv_samp <- sample(tv, replace = TRUE)
+  median(tv_samp)
+})
+# get 95% CI as 2.5 and 97.5 percentiles
+quantile(boot_median, probs = c(0.025, 0.975))
 
 # CODE ALONG 3 ------------------------------------------------------------
 
+# The following code randomly samples 120 homes in the Western Albemarle High
+# school district. Use this data frame to answer the following questions.
+set.seed(123)
+wa_samp <- d %>% 
+  filter(hsdistrict == "Western Albemarle") %>% 
+  sample_n(120)
 
-prop.test(x = sum(d$finsqft > 2000), 
-          n = nrow(d))
+# (1) Calculate 95% confidence interval on mean finsqft
+t.test(wa_samp$finsqft)
+smean.cl.normal(wa_samp$finsqft)
+
+# (2) Does the 95% confidence interval capture the true value?
+d %>% 
+  filter(hsdistrict == "Western Albemarle") %>% 
+  summarize(mean(finsqft))
+
+# (3) Use a bootstrap to calculate a 95% confidence interval for the median age
+# of home. Use 1000 bootstraps.
+
+bootout <- replicate(n = 1000, expr = {
+  sage <- sample(wa_samp$age, replace = TRUE)
+  median(sage)
+})
+quantile(bootout, probs = c(0.025, 0.975))
+
+# (4) Does the 95% bootstrap CI capture the true median age value?
+d %>% 
+  filter(hsdistrict == "Western Albemarle") %>% 
+  summarize(median(age))
+
 
 # Hypothesis Testing ------------------------------------------------------
 
-library(ISwR)
-data("energy")
-str(energy)
+# Sometimes researchers do hypothesis testing on "all the data" based on the
+# assumption the data collected is just one sample of a super-population of
+# possibilities.
 
-ggplot(energy) +
-  aes(x = expend, fill = stature) +
-  geom_density(alpha = 1/4)
+# Is condition of home associated with high school district?
+# Can use a Chi-square test of association to investigate
+ct <- xtabs(~ condition + hsdistrict, data = d)
+chisq.test(ct)
 
-ggplot(energy) +
-  aes(y = stature, x = expend) +
-  geom_jitter(height = 0.05)
+# As small p-value provides evidence against the null of no association, but
+# does not tell us anything about how they may be associated.
 
+# Residuals tell us which cell counts are bigger/smaller than expected. Values
+# greater than 2.5 or 3 in absolute value are of interest.
+ctest <- chisq.test(ct)
+ctest$residuals
 
-aggregate(expend ~ stature, data = energy, mean)
+# A mosaic plot can visualize residuals
+mosaicplot(ct, shade = TRUE)
 
-# Assuming no difference between lean and obese, what is probability we would
-# get data like this or more extreme (8.1 vs 10.3)?
-t.test(expend ~ stature, data = energy)
+# compare to proportions
+ct %>% proportions(margin = 2)
 
+# To compare two proportions we can use the prop.test() function.
 
-
-# compare proportions
-# save table
-tab <- xtabs(~ hsdistrict + fp, data = d, 
-             subset = hsdistrict != "Unassigned", 
-             drop.unused.levels = TRUE)
-
-tab %>% 
-  proportions(margin = 1) %>% 
-  round(2)
-
-# Assuming no difference in proportion of fireplaces in Albemarle and Western
-# Albemarle high school districts, what is probability we would get data like
-# this or more extreme (0.79 vs 0.75)?
-addmargins(tab)
-prop.test(x = c(9962, 7014), n = c(12615, 9382))
+# Is the difference in proportions of Excellent homes in Albemarle and Western
+# Albemarle "significant"? (Many statisticians hate that phrase)
+xtabs(~ condition + hsdistrict, data = d) %>% 
+  addmargins()
+prop.test(x = c(189, 239), n = c(12714, 9421))
 
 
-aggregate(totalvalue ~ fp, data = d, mean)
-# not appropriate to do after peeking at the data
+# Does totalvalue differ between homes with and without fireplaces?
+# Could investigate with a t-test
 t.test(totalvalue ~ fp, data = d)
 
-# HARKing: Hypothesizing After the Results are Known
+# As small p-value provides evidence against the null of no difference, but
+# does not tell us about the difference. Instead look at CI on difference.
 
+# Maybe we should look at distribution of totalvalue by fp
+ggplot(filter(d, !is.na(fp))) +
+  aes(x = totalvalue, fill = factor(fp)) +
+  geom_density(alpha = 1/3)
+
+# Ideally we would like to see the distributions of each group looking roughly
+# symmetric. One option is a log transformation
+ggplot(filter(d, !is.na(fp))) +
+  aes(x = log(totalvalue), fill = factor(fp)) +
+  geom_density(alpha = 1/3)
+
+tout <- t.test(log(totalvalue) ~ fp, data = d)
+tout
+
+# undo the log transformation to see the expected mean values, ie the geometric
+# means.
+exp(tout$estimate)
+
+# the confidence limits for the difference between means cannot be transformed
+# back to the original scale
+tout$conf.int
+
+# Instead we get a 95% CI for the ratio of the geometric means. The geometric
+# mean of homes without fireplaces is about 43% - 45% lower than homes with
+# fireplaces.
+exp(tout$conf.int)
+
+# We can calculate the ratio of the geometric means. It's about 0.56. The 95% CI is about [0.55, 0.57]
+exp(12.53444)/exp(13.10572)
+
+# Another approach is a non-parametric test that makes no assumptions about the
+# distributions. This compares the ranks of the data instead of the values themselves. This takes a second!
+wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
+
+# The "difference in location" estimates the median of the difference between a
+# sample from x and a sample from y.
+
+# We frequently use linear models to adjust for other variables.
 
 # CODE ALONG 4 ------------------------------------------------------------
 
+# observe the following proportions
+xtabs(~ hsdistrict + fp, data = d) %>% 
+  proportions(margin = 1)
 
+# (1) Assuming no difference in proportion of fireplaces in Albemarle and
+# Western Albemarle high school districts, what is probability we would get data
+# like this or more extreme (0.789 vs 0.747)?
+xtabs(~ hsdistrict + fp, data = d) %>% 
+  addmargins()
+prop.test(x = c(9962, 7014), n = c(12615, 9382))
 
 
 # Modeling ----------------------------------------------------------------
-
-
-library(ggeffects)
 
 # Look at the distribution of total values.
 # Obviously there is a great deal of variability in the value of a home.
@@ -442,146 +551,195 @@ hist(d$totalvalue, breaks = 40)
 # Notice some of that variability appears to be associated with finsqft
 plot(totalvalue ~ finsqft, data = d)
 
-# We can attempt to model the value of a home using a linear model
+# We can attempt to model the value of a home using a linear model.
 
+# MODEL 1
 # simple linear model (one predictor)
-# model totalvalue as a function of finsqft (totalvalue ~ finsqft)
+# model totalvalue as a function of finsqft: totalvalue ~ finsqft
 # save to an object called "m1"
 m1 <- lm(totalvalue ~ finsqft, data = d)
 summary(m1)
-coef(m1)
+
+# e+05 is scientific notation; it means move the decimal 5 places to the right.
+
+# This sometimes helps with the scientific notation; just look at the
+# coefficients component of the model object
+m1$coefficients
 
 # Model:
 # totalvalue = -164163.6587 + 314.6012*finsqft + ERROR
 # ERROR ~ N(0, 259300) 
 # ERROR drawn from a Normal dist with mean = 0 and sd = 259300
 
+# Interpretation:
+# Each additional finsqft adds about $314 to value of home;
+# Predicted home value is expected to be off by $259,300
+
+# The confint() function reports 95% confidence intervals on the model
+# coefficients.
+confint(m1)
+
 # Is this a good model? 
-# Look at residuals versus fitted value plot
+
+# Adjusted R-squared:  0.578 
+# This suggests about 58% of the variation in totalvalue is "explained" by
+# finsqft.
+
+# Can also look at residuals versus fitted value plot
 # residual = observed value - fitted value
+# There are 6 available plots; we ask for the first plot
 plot(m1, which = 1)
 
-# the model under-predicts totalvalue for number of homes
-# for home 11719, it's off by about 6 million dollars
-d[11719, "totalvalue"]
+# The dotted line is 0. Values above the line have higher totalvalues than the
+# model predicts. Values below the line have lower totalvalues than the model
+# predicts. Ideally we would like to see these points hover steadily around 0
+# throughout the range of predicted values.
 
-# Use predict() to make model predictions
-# Model predictions expected to be off by about $260,000
-predict(m1, newdata = data.frame(finsqft = 1800))
-predict(m1, newdata = data.frame(finsqft = 1800), interval = "confidence")
+# Verdict: Not great, but perhaps somewhat useful. Predicted values seem to get
+# worse as the predicted values get bigger.
 
-# Visualize model;
-# For homes under 2.5 million and less than 5000 finsqft, it seems ok.
-ggpredict(m1, terms = "finsqft") %>% 
-  plot(add.data = TRUE)
-
-# Now add cooling to model
-m2 <- lm(totalvalue ~ finsqft + cooling, data = d)
+# MODEL 2
+# log transform totalvalue
+m2 <- lm(log(totalvalue) ~ finsqft, data = d)
 summary(m2)
-coef(m2)
+coef(m2)["finsqft"] * 100
 
+# Every additional 100 finsqft adds about 5% to totalvalue of home
+
+# Is this a good model?
 plot(m2, which = 1)
 
-# Visualize model;
-ggpredict(m2, terms = c("finsqft", "cooling")) %>% 
-  plot(add.data = TRUE)
+# Verdict: Now predicted values seem worse for smaller predicted values. 
 
-
-# log transform totalvalue
-m3 <- lm(log(totalvalue) ~ finsqft + cooling, data = d)
-summary(m3)
-coef(m3)
-plot(m3, which = 1)
-ggpredict(m3, terms = c("finsqft", "cooling")) %>% 
-  plot(add.data = TRUE)
-
-# non-linear effect of finsqft using natural splines
+# MODEL 3
+# non-linear effect of finsqft using natural splines (ns)
+# The ns(finsqft, df = 2) code is similar to fitting a polynomial: x + x^2
 library(splines)
-m4 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) + cooling, data = d)
-summary(m4)
-plot(m4, which = 1)
-ggpredict(m4, terms = c("finsqft", "cooling")) %>% 
-  plot(add.data = TRUE)
+m3 <- lm(log(totalvalue) ~ ns(finsqft, df = 2), data = d)
+summary(m3)
 
-# allow effect of finsqft to interact with cooling
-# The effect of finsqft depends on cooling
-m5 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) * cooling, data = d)
-summary(m5)
-plot(m5, which = 1)
-ggpredict(m5, terms = c("finsqft", "cooling")) %>% 
+# There is no interpretation of coefficients
+
+# Is this a good model?
+plot(m3, which = 1)
+
+# Verdict: This seems like an improvement on model 2
+
+# Let's visualize and use the model
+ggpredict(m3, terms = "finsqft") %>% 
   plot()
 
-# can use ggpredict to see predictions and 95% CIs
-eff <- ggpredict(m5, terms = c("finsqft[1000:3000 by=500]", "cooling")) %>% 
-  plot()
+# dot.alpha = 0.1 changes transparency of dots
+ggpredict(m3, terms = "finsqft") %>% 
+  plot(add.data = TRUE, dot.alpha = 0.1)
 
-# ANOVA (one categorical predictor)
-aov1 <- aov(log(totalvalue) ~ hsdistrict, data = d, 
-            subset = hsdistrict != "Unassigned")
-summary(aov1)
-# using lm()
-m4 <- lm(log(totalvalue) ~ hsdistrict, data = d, 
-         subset = hsdistrict != "Unassigned")
+# Use predict() to make model predictions; need to exponentiate
+predict(m3, newdata = data.frame(finsqft = 2500)) %>% exp()
+predict(m3, newdata = data.frame(finsqft = 2500), 
+        interval = "confidence") %>% exp()
+
+# ggpredict makes it easy to get multiple predictions and CIs
+ggpredict(m3, terms = "finsqft[1500:3000 by=500]") 
+
+
+# Let's build a more complex model with multiple predictors, including finsqft, cooling, and fullbath.
+
+# Notice we allow finsqft to interact with cooling;
+# This says the association between totalvalue and finsqft depends on cooling.
+m4 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) + cooling + 
+           ns(finsqft, df = 2):cooling + 
+           fullbath, 
+         data = d)
 summary(m4)
+
+# An Analysis of Variance Table can help us assess whether or not interactions
+# are warranted. 
 anova(m4)
 
+# The first line is a hypothesis test comparing a model with no predictors (just
+# the overall mean) to a model with ns(finsqft, df = 2). The null is no
+# difference between the models. This is soundly rejected.
+
+# The second line is a hypothesis test comparing a model with ns(finsqft, df =
+# 2) to a model with ns(finsqft, df = 2) and cooling. The null is no difference
+# between models. This is also soundly rejected. And so on down the table.
+
+# The last line tests whether the interaction should be included. Based on the
+# p-value it seems warranted.
+
+# This seems like an OK model, at least for most homes
+plot(m4, which = 1)
+
+# Visualize model 
+
+# The interaction appears to happen after 5000 finsqft. But the thick confidence
+# ribbon indicates there are few (if any) homes that big without cooling.
+ggpredict(m4, terms = c("finsqft", "cooling")) %>% 
+  plot()
+
+# The "significant" interaction doesn't seem that interesting when zoomed in on
+# a reasonable range of finsqft
+ggpredict(m4, terms = c("finsqft[1000:5000]", "cooling")) %>% 
+  plot()
+
+# View the effect of fullbaths from 1 - 5
+ggpredict(m4, terms = "fullbath[1:5]") %>% 
+  plot()
+
+# Notice this plot is for cooling = No Central Air and finsqft = 1936.
+ggpredict(m4, terms = "fullbath[1:5]")
+
+# We can manually set the "conditional" values using the condition argument;
+# notice the shape doesn't change, just the y-axis.
+ggpredict(m4, terms = "fullbath[1:5]", 
+          condition = list(cooling = "Central Air",
+                           finsqft = 2000)) %>% 
+  plot()
+
+
+# Many hypothesis tests are special cases of linear models
+
+# ANOVA (one categorical predictor)
+m5 <- lm(totalvalue ~ hsdistrict, data = d)
+anova(m5)
+ggpredict(m5, terms = "hsdistrict") %>% plot()
+
 # t-test (one binary predictor)
-t.test(log(totalvalue) ~ cooling, data = d)
-# using lm()
-m5 <- lm(log(totalvalue) ~ cooling, data = d)
-summary(m5)
-
-# multiple linear regression
-m6 <- lm(log(totalvalue) ~ ns(finsqft, df = 3) + hsdistrict + 
-           cooling, data = d,
-         subset = hsdistrict != "Unassigned")
+m6 <- lm(log(totalvalue) ~ cooling, data = d)
 summary(m6)
+ggpredict(m6, terms = "cooling") %>% plot()
 
-# Use model to make a prediction
-home <- data.frame(finsqft = 2500, hsdistrict = "Albemarle", 
-                   cooling = "Central Air")
-predict(m6, newdata = home, interval = "confidence")
-
-# convert to original scale
-predict(m6, newdata = home, interval = "confidence") %>% exp()
-
-
+# 2-sample proportion test
 # modeling a binary variable
-ggplot(d) +
-  aes(x = finsqft, y = fp) +
-  geom_point(alpha = 1/10, shape = ".") +
-  geom_smooth() +
-  scale_y_continuous(breaks = 0:1, minor_breaks = FALSE, limits = c(0,1))
-
 # logistic regression
-lrm1 <- glm(fp ~ finsqft, data = d, family = binomial)
-summary(lrm1)
-exp(coef(lrm1)["finsqft"])
-exp(coef(lrm1)["finsqft"]*100)
+m7 <- glm(fp ~ hsdistrict, data = d, family = binomial)
+summary(m7)
+ggpredict(m7, terms = "hsdistrict") %>% 
+  plot()
 
-home <- data.frame(finsqft = seq(1500,2000,100))
-predict(lrm1, newdata = home, type = "response")
-
-ggpredict(lrm1, terms = "finsqft[1500:2000 by=100]")
-
-# odds ratio by hand
-p1 <- 0.6055023
-p2 <- 0.6396780
-
-odds1 <- p1/(1 - p1)
-odds2 <- p2/(1 - p2)
-
-odds2/odds1
-# compare to
-exp(coef(lrm1)["finsqft"]*100)
-
-
-ggpredict(lrm1, terms = "finsqft") %>% plot()
-
-
+# There are many big books on linear modeling. This was not comprehensive!
 
 # CODE ALONG 5 ------------------------------------------------------------
 
+# (1) Model log(totalvalue) as a function of finsqft, hsdistrict, and their
+# interaction using lm(). Call the model "mod1". Visualize the interaction
+# between finsqft and hsdistrict.
+mod1 <- lm(log(totalvalue) ~ finsqft + hsdistrict + finsqft:hsdistrict, data = d)
+anova(mod1)
+
+ggpredict(mod1, terms = c("finsqft[1000:4000 by = 200]", "hsdistrict")) %>% 
+  plot()
+
+
+# (2) Model remodel as a function of hsdistrict using glm(). Name the model
+# mod2. In other words, model the probability a home has been remodeled based on
+# the high school district it is located in. Visualize the model.
+
+mod2 <- glm(remodel ~ hsdistrict, data = d, family = binomial)
+summary(mod2)
+
+ggpredict(mod2, terms = "hsdistrict")
+ggpredict(mod2, terms = "hsdistrict") %>% plot()
 
 
 
@@ -624,3 +782,52 @@ ci_test_boot <- pbapply::pbreplicate(n = 1000, expr = {
   boot_ci[1] < true_mean & boot_ci[2] > true_mean
 })
 mean(ci_test_boot)
+
+
+
+# Appendix: CIs by group --------------------------------------------------
+
+# The smean.cl.normal() function can be applied to groups using aggregate or
+# tapply;
+
+# sample 100 rows from the homes data set using dplyr::sample_n()
+d_samp <- sample_n(d, 100)
+aggregate(totalvalue ~ hsdistrict, data = d_samp, smean.cl.normal)
+tapply(d_samp$totalvalue, d_samp$hsdistrict, smean.cl.normal)
+
+# We can plot this but it takes some work to wrangle into shape
+ci_df <- tapply(d_samp$totalvalue, d_samp$hsdistrict, smean.cl.normal) %>%
+  do.call(rbind, .) %>%    # collapse the rows into a matrix
+  as.data.frame() %>%      # convert matrix to data frame
+  rownames_to_column(., var = "hsdistrict")  # add rownames as variable to data
+
+# create the plot
+ggplot(ci_df) +
+  aes(x = hsdistrict, y = Mean,
+      ymin = Lower, ymax = Upper) +
+  geom_point() +
+  geom_errorbar(width = 0.1) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(y = "Mean total value", x = "high school district")
+
+# This sort of plot is easier to do with a linear model. 
+
+# Confidence intervals for proportions by groups are harder to get.
+# Here's one way using the binom.prop.test() function from the binom package
+library(binom)
+tab_df <- xtabs(~ hsdistrict + fp, data = d_samp) %>% 
+  addmargins(margin = 2) %>% 
+  apply(MARGIN = 1, function(x)binom.prop.test(x = x["1"], n = x["Sum"])) %>% 
+  bind_rows(.id = "hsdistrict")
+
+ggplot(tab_df) +
+  aes(x = hsdistrict, y = mean,
+      ymin = lower, ymax = upper) +
+  geom_point() +
+  geom_errorbar(width = 0.1) +
+  labs(y = "proportion of homes with fireplaces", 
+       x = "high school district")
+
+# This sort of plot is easier to do with a logistic regression model. 
+
+

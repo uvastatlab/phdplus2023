@@ -97,13 +97,18 @@ Example: 0.14, or 14%, of students surveyed said they were cancelling Netflix.
 
 That could be 1/7, or 100/700. The former seems less important because of the small denominator.
 
-::: callout-tip
-Beware of percents and proportions presented without the sample size used to calculate them.
+::: callout-important
+Beware of percents and proportions presented without the denominator (sample size) used to calculate them.
+:::
+
+
+::: callout-important
+Also consider the source of the denominator. Was the survey random or administered in the dining hall during breakfast? 
 :::
 
 ## Probability versus Odds
 
-Probabilities (p) range from 0 to 1.
+Probabilities (p) range from 0 to 1. Proportions are often interpreted as estimates of probabilities. 
 
 Odds = p/(1 - p) and range from 0 to infinity.
 
@@ -129,7 +134,7 @@ head(d$totalvalue, n = 200)
 
 We usually summarize numeric data by calculating some measure of the center and the spread.
 
--   *Center* is usually interpreted as the most representative value. That's not always correct.
+-   *Center* is usually interpreted as a typical or representative value. That's not always correct.
 -   *Spread* is usually interpreted as how far away we can expect any value to be from the center value.
 
 The most common measures of center are the **mean** and **median**.
@@ -148,6 +153,10 @@ When data are *skewed*, the median may be a better measure of center or typical 
 
 ::: callout-tip
 In practice you should *examine both* if planning to present a summary of data.
+:::
+
+::: callout-important
+Means and medians as summary measures are not always the best estimates of the expected or most representative value.
 :::
 
 ## Some distributions
@@ -170,13 +179,17 @@ y3 <- ifelse(x == 1, rnorm(n,5,1), rnorm(n,11,2))
 y4 <- runif(n)
 
 op <- par(mfrow = c(2,2), mar = c(2, 4, 2, 2) + 0.1)
-hist(y1, main = "symmetric", xlab = "", ylab = "")
+hist(y1, main = "symmetric\nmean/median representative", 
+     xlab = "", ylab = "", cex.main = 0.9)
 f(x = y1)
-hist(y2, main = "skewed", xlab = "", ylab = "")
+hist(y2, main = "skewed\nmean/median somewhat representative", 
+     xlab = "", ylab = "", cex.main = 0.9)
 f(x = y2)
-hist(y3, main = "bimodal", xlab = "", ylab = "")
+hist(y3, main = "bimodal\nmean/median not representative", 
+     xlab = "", ylab = "", cex.main = 0.9)
 f(x = y3)
-hist(y4, main = "symmetric", xlab = "", ylab = "")
+hist(y4, main = "symmetric\nmean/median not representative", 
+     xlab = "", ylab = "", cex.main = 0.9)
 f(x = y4)
 par(op)
 ```
@@ -195,6 +208,7 @@ IQR(d$totalvalue)
 
 As summaries of data, they can be confusing if your audience is not familiar with the concept of spread.
 
+
 ## Percentiles/Quantiles/Quartiles
 
 Observe the summary output for Albemarle Real Estate home values:
@@ -209,9 +223,9 @@ The value labeled "1st Qu.", `r scales::dollar(as.integer(quantile(d$totalvalue,
 - 0.25 quantile = the value below which lies 0.25 of data
 - 25th percentile = the value below which lies 25% of data
 
-The median is the 2nd quartile, 0.5 quantile, and 50th percentile.
+The median is the 2nd quartile, 0.5 quantile, and 50th percentile. "3rd Qu." is the 3rd quartile, 0.75 quantile, and 75th percentile.
 
-The `quantile()` function can return any quantile/percentile you desire. 
+The `quantile()` function returns the quantile/percentile you specify. 
 
 ## Empirical Cumulative Distributions
 
@@ -246,7 +260,7 @@ log(x) # what power do we raise e to get x?
 
 Natural logs are often preferred in statistical analyses because they can make interpretation easier. 
 
-They are also appropriate when large data values can be assumed to be bigger in a _relative_ sense rather than an _absolute_ sense. 
+They are also appropriate when large data values can be assumed to be bigger in a _relative_ sense rather than an _absolute_ sense. (Managers earn 20% more than workers. Directors earn 30% more than managers. Executives earn 40% more than Directors. And so on.)
 
 ## Before and After
 
@@ -347,7 +361,7 @@ Be cautious of interpreting estimates presented without standard errors.
 
 Previously we saw distributions of _raw data_ for which the standard deviation was not a good measure of spread.
 
-However it turns out the distribution of means calculated from most any distribution is pretty symmetric! This is the _Central Limit Theorem_. This means we can be fairly confident about standard error estimates.
+However it turns out the distribution of means calculated from most distributions is fairly symmetric. This is the _Central Limit Theorem_. This means we can be fairly confident about standard error estimates.
 
 ```{r}
 set.seed(1234)
@@ -370,7 +384,7 @@ Adding and subtracting standard errors to our estimate forms an interval of what
 
 The most common interval calculated is the _95% confidence interval_ (CI).
 
-We say "95%" because the method should work 95% of the time based on how many standard errors we add/subtract to create interval.
+We say "95%" because the method should work 95% of the time based on how many standard errors we add/subtract to create the interval.
 
 We call it "confidence" because we are confident in the method. 
 
@@ -402,7 +416,7 @@ Let's say we believe a coin is fair and lands heads 50% of the time.
 
 We flip it 20 times and get 18 heads. That's 18/20 = 90%.
 
-If the coin was really fair, what is the probability of getting 18 or more heads?
+If the coin was really fair, what is the probability of getting 18 _or more_ heads?
 
 The answer is about 0.0002. That's a _p-value_.
 
@@ -413,11 +427,11 @@ What we just described is an example of a _hypothesis test_.
 
 ## Hypothesis testing and p-values
 
-Hypothesis testing estimates the probability of obtaining the data we collected under the assumption of some hypothesis, usually null, or no effect, hypothesis.
+Hypothesis testing estimates the probability of obtaining the data we collected, or more extreme data, under the assumption of some hypothesis (usually a null/no effect hypothesis).
 
-What is the probability a cow painted like a zebra would have less fly bites than an unpainted cow, _assuming the paint job had no effect_? The authors state p < 0.0001.
+What is the probability a cow painted like a zebra would have 55 _or fewer_ fly bites than an unpainted cow which had 128, _assuming the paint job had no effect_? The authors state p < 0.0001.
 
-Historically p-values < 0.05 have been interpreted as "statistically significant", though many prominent statisticians are [now calling to abolish that threshold](https://www.tandfonline.com/doi/full/10.1080/00031305.2019.1583913).
+Historically, p-values < 0.05 have been interpreted as "statistically significant", though many prominent statisticians are [now calling to abolish that threshold and the phrase "statistically significant"](https://www.tandfonline.com/doi/full/10.1080/00031305.2019.1583913).
 
 Nevertheless, p-values have been published, and will likely continue to be published, so it pays to know what they mean.
 
@@ -452,7 +466,7 @@ Let's go to R.
 
 Socioeconomic position and the risk of brain tumour: a Swedish national population-based cohort study [source](https://jech.bmj.com/content/70/12/1222)
 
-What do they mean by _with adjustment for potential confounders_?
+
 
 ## Conditional means
 
@@ -484,15 +498,14 @@ A linear model is a function of predictors. For example, here's a simple model:
 
 $$\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$ 
 
-Setting finsqft = 2000 and cooling = 1 (central air) returns:
+
+This model estimates the mean expected value of homes with 2000 finished square feet and central air (cooling = 1) to be \$352,235 :
 
 $$\text{total value} = 80,839 + 111(2000) + 49,396(1) = \$ 352,235$$ 
 
 It says each additional finished square foot adds \$111 to the expected value of a home. It also says a home with central air is expected to be worth almost \$50,000 than a home without central air. 
 
 If we were interested in finsqft, we might say we have adjusted for the potential confounder cooling. 
-
-**By the way, this may not be a good model!**
 
 ## No model is perfect
 
@@ -565,15 +578,27 @@ More information: [Common statistical tests are linear models (or: how to teach 
 
 Let's go to R!
 
+## Wrap up
+
+This presentation is woefully deficient and incomplete. Essential statistics cannot be taught and learned in 2 hours.
+
+But hopefully you've learned enough to respect the variability and uncertainty in statistics, and to be cautious and modest when drawing conclusions from statistics. 
+
+> it is not necessary to remember all concepts and conversions, only to remember when to stop and enlist help. -Elisabeth Ribbans
+
+
 ## References
 
-The Art of Statistics
+Spiegelhalter, David. (2019). _The Art of Statistics_. Basic Books, New York.
 
-Why I Don't Like Percents\
-https://www.fharrell.com/post/percent/
+[Why I Don't Like Percents](https://www.fharrell.com/post/percent/)
 
-Statistics Notes: What is a percentage difference?\
-https://www.bmj.com/content/358/bmj.j3663
+[Statistics Notes: What is a percentage difference?](https://www.bmj.com/content/358/bmj.j3663)
 
-Statistical Thinking for the 21st Century\
-https://statsthinking21.github.io/statsthinking21-core-site/
+[Statistical Thinking for the 21st Century](https://statsthinking21.github.io/statsthinking21-core-site/)
+
+[Ten Simple Rules for Effective Statistical Practice](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1004961)
+
+[On the sixth day of Christmas – or was it the seventh? Why numbers matter more than ever](https://www.theguardian.com/commentisfree/2022/dec/29/on-the-sixth-day-of-christmas-or-was-it-the-seventh-why-numbers-matter-more-than-ever)
+
+[Statistics Notes: The use of transformation when comparing two means](https://www.bmj.com/content/312/7039/1153)
