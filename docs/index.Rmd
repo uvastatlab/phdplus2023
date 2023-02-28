@@ -44,6 +44,8 @@ Instructor: Jacob Goldstein-Greenwood
 
 It’s rare that a data set arrives in the exact form we need it to be in for a given analysis or visualization. Data preparation, wrangling, and cleaning are perennial parts of researchers’ and analysts’ work. This workshop will discuss and illustrate fundamental data-wrangling techniques using base R functions and functions from the “tidyverse” suite of packages. Topics will include: subsetting observations and variables; grouping data and summarizing groups; creating variables (including as functions of other variables); joining and merging data; reshaping data; and parsing messy variable values. _Note: This workshop, “Data Preparation,” will introduce many data-wrangling tools and techniques that will be applied and practiced in the March 22 “Data Wrangling” workshop._
 
+[Workshop Materials](https://github.com/uvastatlab/phdplus2023/raw/main/docs/02_data_preparation.zip)
+
 <br>
 
 #### **Data Visualization**
