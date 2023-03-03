@@ -70,7 +70,7 @@ Ownership increased by 8.02% - 6.94% = 1.08%\
 The percentage of households increased from 6.94% to 8.02%
 
 **Relative change**:\
-Ownership increased by 8.02/6.94 = 1.1556 = 15.56%\
+Ownership increased by 8.02/6.94 = 1.1556 (or 15.56%)  
 The 2014 percentage increased by 15.56%
 
 ## Proportions versus Percents
@@ -135,7 +135,7 @@ head(d$totalvalue, n = 200)
 We usually summarize numeric data by calculating some measure of the center and the spread.
 
 -   *Center* is usually interpreted as a typical or representative value. That's not always correct.
--   *Spread* is usually interpreted as how far away we can expect any value to be from the center value.
+-   *Spread* is usually interpreted as how far away we can expect any value to be from the center value. That's not always useful.
 
 The most common measures of center are the **mean** and **median**.
 
@@ -327,7 +327,7 @@ cor(dat$dino_x, dat$dino_y)  # t-rex
 
 ## Trees
 
-> "we estimate that the global number of trees is approximately 3.04 trillion (+/-0.096 trillion, 95% confidence intervals (CI))"
+> "we estimate that the global number of trees is approximately 3.04 trillion (+/-0.096 trillion, 95% confidence interval (CI))"
 
 Mapping tree density at a global scale, [Nature](https://www.nature.com/articles/nature14967) (2015)
 
@@ -335,11 +335,11 @@ Mapping tree density at a global scale, [Nature](https://www.nature.com/articles
 
 Sometimes we can collect all the data in a population (eg, Albemarle County real estate data). The mean of the data is the mean. There is no uncertainty. 
 
-Most of the time we can only collect a sample (eg, voters, trees, cows). Hopefully it's a _random sample_. The mean of the sample data is _not_ the mean of the entire population. It is an _estimate_.
+Sometimes we can only collect a sample (eg, voters, trees, cows). Hopefully it's a _random sample_. The mean of the sample data is _not_ the mean of the entire population. It is an _estimate_.
 
 We often use the estimate as our best guess at the population mean. How uncertain is this estimate?
 
-This is usually answered with _standard errors_ and _confidence intervals_.
+We usually try to assess this with _standard errors_ and _confidence intervals_.
 
 ## Standard Errors
 
@@ -361,7 +361,7 @@ Be cautious of interpreting estimates presented without standard errors.
 
 Previously we saw distributions of _raw data_ for which the standard deviation was not a good measure of spread.
 
-However it turns out the distribution of means calculated from most distributions is fairly symmetric. This is the _Central Limit Theorem_. This means we can be fairly confident about standard error estimates.
+However it turns out the distribution of sample means calculated from most distributions is fairly symmetric. This is the _Central Limit Theorem_. This means we can be fairly confident about standard error estimates.
 
 ```{r}
 set.seed(1234)
@@ -372,7 +372,7 @@ means <- replicate(n = 1000, expr = {
 op <- par(mfrow = c(1,2), pty = "s")
 curve(dchisq(x, df = 3), from = 0, to = 10, ylab = "", xlab = "", 
       main = "skewed population\nmean = 3")
-plot(density(means), ylab = "", xlab = "", main = "distribution of 1000 means\nfrom skewed population (n=30)")
+plot(density(means), ylab = "", xlab = "", main = "distribution of 1000 sample means\nfrom skewed population (n=30)")
 par(op)
 ```
 
@@ -380,7 +380,7 @@ par(op)
 
 ## Confidence Intervals
 
-Adding and subtracting standard errors to our estimate forms an interval of what we might say is a reasonable range of the true population value.
+Adding and subtracting standard errors to our estimate forms an interval of what we might say is a reasonable range that contains the true population value.
 
 The most common interval calculated is the _95% confidence interval_ (CI).
 
@@ -503,7 +503,7 @@ This model estimates the mean expected value of homes with 2000 finished square 
 
 $$\text{total value} = 80,839 + 111(2000) + 49,396(1) = \$ 352,235$$ 
 
-It says each additional finished square foot adds \$111 to the expected value of a home. It also says a home with central air is expected to be worth almost \$50,000 than a home without central air. 
+It says each additional finished square foot adds \$111 to the expected value of a home. It also says a home with central air is expected to be worth almost \$50,000 more than a home without central air. 
 
 If we were interested in finsqft, we might say we have adjusted for the potential confounder cooling. 
 

@@ -12,7 +12,7 @@ library(ggeffects)
 URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/albemarle_homes_2023.rds"
 d <- readRDS(url(URL))
 
-# drop homes that are not assigned to a hsdistrict and then drop the unusued level 
+# drop homes that are not assigned to a hsdistrict and then drop the unused levels
 d <- d %>% 
   filter(hsdistrict != "Unassigned") %>%  
   mutate(hsdistrict = droplevels(hsdistrict),
@@ -22,33 +22,57 @@ d <- d %>%
 
 # Counts and proportions --------------------------------------------------
 
+# simple counts of one variable can be obtained with table()
+table(d$hsdistrict)
+
+# to calculate proportions, we can pipe into proportions()
+table(d$hsdistrict) %>% proportions()
+
+# can also use xtabs()
+xtabs( ~ hsdistrict, data = d)
+xtabs( ~ hsdistrict, data = d) %>% proportions()
+
+# 2-way tables
 # create a cross tabulation using xtabs()
-# ~ rows + columns
+# ~ row_variable + column_variable
+
 # cross tabulation of hsdistrict and fp (fireplace status)
 xtabs(~ hsdistrict + fp, data = d)
+
+# Missing values are dropped by default!
+# set addNA = TRUE to see missing as a separate category
+xtabs(~ hsdistrict + fp, data = d, addNA = TRUE)
 
 # save table
 tab <- xtabs(~ hsdistrict + fp, data = d)
 
 # portions of table can be extracted with indexing brackets
+
 # row 1
 tab[1,]
+
 # column 1
 tab[,1]
+
 # row 1, column 2
 tab[1,2]
+
+# adding drop=FALSE preserves table structure
+tab[1,,drop = FALSE]
+tab[,1, drop = FALSE]
+tab[1,2, drop = FALSE]
 
 # Can also use row and column names 
 tab["Albemarle", ]
 tab[, "1"]
 tab["Albemarle", "1"]
 
-# Given high school district, what proportion of homes do and do not have fireplaces? Condition on rows. (ie, rows sum to 1)
+# Given high school district, what proportion of homes do and do not have fireplaces? Condition on rows. (row proportions sum to 1)
 tab %>% 
   proportions(margin = 1) %>% 
   round(2)
 
-# Given homes with and without fireplaces, what proportions are in each high school district? Condition on columns (ie, columns sum to 1)
+# Given homes with and without fireplaces, what proportions are in each high school district? Condition on columns (column proportions sum to 1)
 tab %>% 
   proportions(margin = 2) %>% 
   round(2)
@@ -61,27 +85,114 @@ tab_p
 
 # What's the difference in proportion of homes with a fireplace between
 # Albemarle and Monticello? 
+tab_p["Albemarle", "1"]
+tab_p["Monticello", "1"]
+
 
 # absolute difference = 0.16 or 16%
 tab_p["Albemarle", "1"] - tab_p["Monticello", "1"]
 tab_p[1,2] - tab_p[2,2]
 
-# Albemarle has 0.16, or 16%, more homes with fireplaces.
+# The difference in proportions is 0.16. The proportion of homes with fireplaces
+# in Albemarle is 0.16 higher than the proportion of homes with fireplaces in
+# Monticello.
 
 # relative difference = 1.25 or 25% 
 tab_p["Albemarle", "1"]/tab_p["Monticello", "1"]
 tab_p[1, 2]/tab_p[2, 2]
 
-# We expect a given home in Albemarle is 0.25, or 25%, more likely to have a
-# fireplace than a home in Monticello.
+# The ratio of proportions is 1.25. Albemarle has about 25% more homes with
+# fireplaces than Monticello.
+
+# 3-way tables (and beyond)
+
+# We can also go beyond two dimensions. This is sometimes called "stratifying"
+# on additional variables.
+
+# cross tabulation of hsdistrict and fp (fireplace status) stratified by cooling
+# status
+tab2 <- xtabs(~ hsdistrict + fp + cooling, data = d)
+tab2
+
+# portions of table can be extracted with indexing brackets; need to use 3
+# dimensions.
+
+# The third dimension refers to the strata
+tab2[,,1]  # cooling = No Central Air
+tab2[,,2]  # cooling = Central Air
+
+# or using names
+tab2[,,"No Central Air"]
+tab2[,,"Central Air"]  
+
+# adding drop = FALSE preserves row/column/strata names
+# This is useful when working with 3 or dimensions.
+tab2[, ,"Central Air", drop = FALSE]
+
+# Look at Monticello
+tab2["Monticello", , , drop = FALSE]
+
+# Look at fp = 1
+tab2[, "1", ,drop = FALSE]
+
+# Calculate proportions across rows within each strata;
+
+# within each cooling strata, for each high school district, what proportion of
+# homes have and do not have fireplaces
+tab2 %>% 
+  proportions(margin = c(1, 3)) %>% 
+  round(2)
+
+# Within each cooling strata, for homes without and with fireplaces, what
+# proportion are in each high school district.
+tab2 |>
+  proportions(margin = c(2, 3)) |>
+  round(2)
+
+# For homes with central air, Monticello has 0.32 without a fireplace versus
+# 0.19 for Albemarle. 
+tab2 %>% 
+  proportions(margin = c(1, 3)) %>% 
+  round(2)
+
+# What's the absolute and relative differences?
+tab2_p <- tab2 |>
+  proportions(margin = c(1, 3)) |>
+  round(2)
+
+# Absolute
+tab2_p["Monticello", "0", "Central Air"] - 
+  tab2_p["Albemarle", "0", "Central Air"]
+
+# Of all homes with central air, the proportion of homes without a fireplace in
+# Monticello is 0.13 higher than the proportion of homes with a fireplace in
+# Albemarle.
+
+
+# Relative
+tab2_p["Monticello", "0", "Central Air"]/
+  tab2_p["Albemarle", "0", "Central Air"]
+
+# Of all homes with central air, Monticello has about 68% more homes without a
+# fireplace than Albemarle
+
 
 # Can also calculate counts and proportions based on a condition.
-# Proportion of homes over 2000 fin sq ft in size
+# Proportion of homes over 2000 finsqft in size
 sum(d$finsqft > 2000)
 mean(d$finsqft > 2000)
 
 # Proportion of homes with 3 or 4 bedrooms
 mean(d$bedroom %in% 3:4)
+
+# These conditions can be included in a call to xtabs()
+xtabs(~ (finsqft > 2000) + hsdistrict, data = d) %>% 
+  proportions(margin = 2) %>% 
+  round(2)
+
+# the tidyverse way for counts and proportions requires more work and is
+# documented in an appendix at the end of this script.
+
 
 
 # CODE ALONG 1 ------------------------------------------------------------
@@ -101,6 +212,11 @@ tp["Burley", "No Central Air"]/tp["Walton", "No Central Air"]
 
 # (2) What proportion of homes are on more than 1 acre of land (lotsize)
 mean(d$lotsize > 1)
+
+# (3) What proportion of homes are on more than 1 acre of land (lotsize) within each hsdistrict?
+xtabs(~ (lotsize > 1) + hsdistrict, data = d) %>% 
+  proportions(margin = 2) %>% 
+  round(2)
 
 # Summarizing numeric data ------------------------------------------------
 
@@ -138,20 +254,24 @@ quantile(d$totalvalue, probs = 1:19/20)
 # inverse of quantile
 # given the value, what's the quantile/percentile?
 Fn <- ecdf(d$totalvalue)
-Fn(500000) # 66th percentile
-Fn(1e6)    # 93rd percentile
+# what percentile is a $500,000 home in?
+Fn(500000) 
+# what percentile is a $1,500,000 home in?
+Fn(1e6)   
 
 # we can plot the ECD
 plot(Fn)
 
 # summaries by group
-# returns a data frame
+# aggregate() returns a data frame
+# can use formula notation
 aggregate(totalvalue ~ hsdistrict, data = d, mean)
 aggregate(totalvalue ~ hsdistrict, data = d, median)
 aggregate(totalvalue ~ hsdistrict, data = d, IQR)
 aggregate(totalvalue ~ hsdistrict, data = d, summary) # kind of messy
 
-# returns a vector or list
+# tapply() returns a vector or list
+# works with vectors 
 tapply(d$totalvalue, d$hsdistrict, mean)
 tapply(d$totalvalue, d$hsdistrict, median)
 tapply(d$totalvalue, d$hsdistrict, IQR)
@@ -171,14 +291,13 @@ tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
 # For example, make data frame for plotting
 m_df <- aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
 ggplot(m_df) +
-  aes(x = hsdistrict, y = totalvalue, color = cooling, group = cooling) +
-  geom_point() +
-  geom_line() +
+  aes(x = hsdistrict, y = totalvalue, shape = cooling) +
+  geom_point(size = 3) +
   scale_y_continuous(labels = scales::dollar) +
   labs(title = 'Median home values by HS District and Central Air status')
 
 
-# summaries available in packages
+# more summaries available in packages
 psych::describe(d$totalvalue)
 Hmisc::describe(d$totalvalue)
 
@@ -288,7 +407,7 @@ d %>%
 # Uncertainty -------------------------------------------------------------
 
 # Uncertainty about a mean
-# random sample 50 total home values
+# randomly sample 50 total home values
 
 # Recall: we have all the data! This is for illustration purposes, as if we only
 # had a random sample of homes.
@@ -349,7 +468,7 @@ prop.test(x = sum(samp2, na.rm = TRUE), n = 50, correct = FALSE)
 z <- rnorm(30, mean = 10, sd = 2)
 # calculate confidence interval on estimated mean
 tout <- t.test(z)
-# is true value contained in confidence interval
+# is true value of 10 contained in confidence interval?
 tout$conf.int[1] < 10 & tout$conf.int[2] > 10
 
 # repeat 1000 times
@@ -432,7 +551,7 @@ d %>%
   summarize(mean(finsqft))
 
 # (3) Use a bootstrap to calculate a 95% confidence interval for the median age
-# of home. Use 1000 bootstraps.
+# of homes in our sample. Use 1000 bootstraps.
 
 bootout <- replicate(n = 1000, expr = {
   sage <- sample(wa_samp$age, replace = TRUE)
@@ -484,7 +603,7 @@ prop.test(x = c(189, 239), n = c(12714, 9421))
 # Could investigate with a t-test
 t.test(totalvalue ~ fp, data = d)
 
-# As small p-value provides evidence against the null of no difference, but
+# A small p-value provides evidence against the null of no difference, but
 # does not tell us about the difference. Instead look at CI on difference.
 
 # Maybe we should look at distribution of totalvalue by fp
@@ -509,22 +628,25 @@ exp(tout$estimate)
 # back to the original scale
 tout$conf.int
 
-# Instead we get a 95% CI for the ratio of the geometric means. The geometric
-# mean of homes without fireplaces is about 43% - 45% lower than homes with
-# fireplaces.
+# Instead, if we exponentiate, we get a 95% CI for the ratio of the geometric
+# means. The geometric mean of homes without fireplaces is about 44% - 43% lower
+# than homes with fireplaces. (ie, $277,741 is about 43-44% lower than $491,747)
 exp(tout$conf.int)
+1 - exp(tout$conf.int) # about 44% - 43% lower
 
-# We can calculate the ratio of the geometric means. It's about 0.56. The 95% CI is about [0.55, 0.57]
+# We can calculate the ratio of the geometric means. It's about 0.56. The 95% CI
+# is about [0.55, 0.57]
 exp(12.53444)/exp(13.10572)
 
 # Another approach is a non-parametric test that makes no assumptions about the
-# distributions. This compares the ranks of the data instead of the values themselves. This takes a second!
+# distributions. This compares the ranks of the data instead of the values
+# themselves. This takes a second!
 wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
 
 # The "difference in location" estimates the median of the difference between a
-# sample from x and a sample from y.
+# sample from homes with fireplaces and a sample from homes without fireplaces.
 
-# We frequently use linear models to adjust for other variables.
+
 
 # CODE ALONG 4 ------------------------------------------------------------
 
@@ -551,7 +673,9 @@ hist(d$totalvalue, breaks = 40)
 # Notice some of that variability appears to be associated with finsqft
 plot(totalvalue ~ finsqft, data = d)
 
-# We can attempt to model the value of a home using a linear model.
+# We can attempt to model the totalvalue of a home using finsqft. In other
+# words, create a a math formula that allows us to estimate the expected
+# totalvalue of a home based on its finsqft.
 
 # MODEL 1
 # simple linear model (one predictor)
@@ -573,13 +697,23 @@ m1$coefficients
 
 # Interpretation:
 # Each additional finsqft adds about $314 to value of home;
-# Predicted home value is expected to be off by $259,300
+# Predicted home value is expected to be off by about $259,300
 
 # The confint() function reports 95% confidence intervals on the model
 # coefficients.
 confint(m1)
 
-# Is this a good model? 
+# Let's use our model to make a prediction.
+
+# What is the expected mean value of homes with 2500 finsqft?
+predict(m1, newdata = data.frame(finsqft = 2500), 
+        interval = "confidence")
+
+# What is the expected value of a single home with 2500 finsqft?
+predict(m1, newdata = data.frame(finsqft = 2500), 
+        interval = "prediction")
+
+# But is this a good model? Should we trust these predictions?
 
 # Adjusted R-squared:  0.578 
 # This suggests about 58% of the variation in totalvalue is "explained" by
@@ -596,10 +730,11 @@ plot(m1, which = 1)
 # throughout the range of predicted values.
 
 # Verdict: Not great, but perhaps somewhat useful. Predicted values seem to get
-# worse as the predicted values get bigger.
+# worse as the predicted values get bigger. 
 
 # MODEL 2
 # log transform totalvalue
+# This changes how we interpret the finsqft coefficient
 m2 <- lm(log(totalvalue) ~ finsqft, data = d)
 summary(m2)
 coef(m2)["finsqft"] * 100
@@ -635,10 +770,16 @@ ggpredict(m3, terms = "finsqft") %>%
 
 # Use predict() to make model predictions; need to exponentiate
 predict(m3, newdata = data.frame(finsqft = 2500)) %>% exp()
+
+# expected mean value of homes with 2500 finsqft
 predict(m3, newdata = data.frame(finsqft = 2500), 
         interval = "confidence") %>% exp()
+# expected value of a home with 2500 finsqft
+predict(m3, newdata = data.frame(finsqft = 2500), 
+        interval = "prediction") %>% exp()
 
-# ggpredict makes it easy to get multiple predictions and CIs
+# ggpredict makes it easy to get multiple predictions and 95% CIs
+# The CIs are for expected mean values
 ggpredict(m3, terms = "finsqft[1500:3000 by=500]") 
 
 
@@ -767,6 +908,65 @@ odds2/odds1
 
 epitools::oddsratio(tab)
 
+
+
+# Appendix: tidyverse counts and proportions ------------------------------
+
+# Calculating counts and proportions in tidyverse takes a little more work. And
+# you always get a data frame.
+
+# One-way
+d %>% 
+  count(hsdistrict)
+
+d %>% 
+  count(hsdistrict) %>% 
+  mutate(p = n/sum(n))
+
+# Two-way
+# notice it reports NA as a separate level
+d %>% 
+  group_by(hsdistrict, fp) %>% 
+  tally()
+
+# proportions within hsdistrict
+d %>% 
+  group_by(hsdistrict, fp) %>% 
+  tally() %>% 
+  mutate(p = n/sum(n)) 
+
+# proportions within fp (switch order in group_by)
+d %>% 
+  group_by(fp, hsdistrict) %>% 
+  tally() %>% 
+  mutate(p = n/sum(n)) 
+
+# drop NA; need to use select() and drop_na()
+d %>% 
+  select(fp, hsdistrict) %>% 
+  drop_na() %>% 
+  group_by(fp, hsdistrict) %>% 
+  tally() %>% 
+  mutate(p = n/sum(n)) 
+
+# 3-way
+# the stratification variable comes first in group_by()
+d %>%
+  select(hsdistrict, fp, cooling) %>% 
+  group_by(cooling, hsdistrict, fp) %>% 
+  drop_na() %>% 
+  tally() %>% 
+  mutate(p = n/sum(n)) 
+
+# We can pipe into xtabs() to get a matrix-like table
+d %>%
+  select(hsdistrict, fp, cooling) %>% 
+  group_by(cooling, hsdistrict, fp) %>%  
+  drop_na() %>% 
+  tally() %>% 
+  mutate(p = n/sum(n)) %>% 
+  xtabs(p ~ hsdistrict + fp + cooling, .) %>% 
+  round(3)
 
 
 # Appendix: bootstrap CI coverage -----------------------------------------

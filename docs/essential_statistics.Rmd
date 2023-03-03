@@ -1,0 +1,741 @@
+---
+title: "PhD Plus: Essential Statistics"
+author: "Clay Ford"
+date: "Spring 2023"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+Load packages we'll use today. In the first line, we only load two functions from the Hmisc package.
+
+```{r}
+library(Hmisc, include.only = c("smean.cl.normal", "smean.cl.boot"))
+library(tidyverse)
+library(ggeffects)
+```
+
+Read in data from Git Hub
+
+```{r}
+URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/albemarle_homes_2023.rds"
+d <- readRDS(url(URL))
+```
+
+Drop homes that are not assigned to a hsdistrict and then drop the unused levels.
+
+```{r}
+d <- d %>% 
+  filter(hsdistrict != "Unassigned") %>%  
+  mutate(hsdistrict = droplevels(hsdistrict),
+         msdistrict = droplevels(msdistrict),
+         esdistrict = droplevels(esdistrict))
+
+```
+
+## Counts and proportions
+
+Simple counts of one variable can be obtained with `table()`
+
+```{r}
+table(d$hsdistrict)
+```
+
+To calculate proportions, we can pipe into `proportions()`
+
+```{r}
+table(d$hsdistrict) %>% proportions()
+```
+
+
+We can also use `xtabs()` function that allows us to use R's formula syntax.
+
+```{r}
+xtabs( ~ hsdistrict, data = d)
+xtabs( ~ hsdistrict, data = d) %>% proportions()
+```
+
+
+### 2-way tables
+
+Create a cross-tabulation using `xtabs()`
+`~ row_variable + column_variable`
+
+Cross-tabulation of hsdistrict and fp (fireplace status)
+
+```{r}
+xtabs(~ hsdistrict + fp, data = d)
+```
+
+
+Notice missing values are dropped by default! Set `addNA = TRUE` to see missing as a separate category
+
+```{r}
+xtabs(~ hsdistrict + fp, data = d, addNA = TRUE)
+```
+
+We can save a table as an object.
+
+```{r}
+tab <- xtabs(~ hsdistrict + fp, data = d)
+```
+
+To see the table, simply submit it.
+
+```{r}
+tab
+```
+
+
+Portions of table can be extracted using indexing brackets
+
+```{r}
+# row 1
+tab[1,]
+```
+
+
+```{r}
+# column 1
+tab[,1]
+```
+
+```{r}
+# row 1, column 2
+tab[1,2]
+```
+
+Adding `drop=FALSE` preserves table structure
+
+```{r}
+tab[1,,drop = FALSE]
+```
+
+```{r}
+tab[,1, drop = FALSE]
+```
+
+```{r}
+tab[1,2, drop = FALSE]
+```
+
+We can also use row and column names to extract rows/columns/cells
+
+```{r}
+tab["Albemarle", ]
+```
+
+```{r}
+tab[, "1"]
+```
+
+```{r}
+tab["Albemarle", "1"]
+```
+
+
+
+Given high school district, what proportion of homes do and do not have fireplaces? Condition on rows. (row proportions sum to 1)
+
+```{r}
+tab %>% 
+  proportions(margin = 1) %>% 
+  round(2)
+```
+
+
+Given homes with and without fireplaces, what proportions are in each high school district? Condition on columns (column proportions sum to 1)
+
+```{r}
+tab %>% 
+  proportions(margin = 2) %>% 
+  round(2)
+```
+
+Let's save table of proportions so we can do further work.
+
+```{r}
+tab_p <- tab %>% 
+  proportions(margin = 1) %>% 
+  round(2)
+tab_p
+```
+
+
+What's the difference in proportion of homes with a fireplace between Albemarle and Monticello? 
+
+```{r}
+c(tab_p["Albemarle", "1"],
+  tab_p["Monticello", "1"])
+```
+
+
+Absolute difference = 0.16 or 16%
+
+```{r}
+tab_p["Albemarle", "1"] - tab_p["Monticello", "1"]
+```
+
+The difference in proportions is 0.16. The proportion of homes with fireplaces
+in Albemarle is 0.16 higher than the proportion of homes with fireplaces in
+Monticello.
+
+Relative difference = 1.25 or 25% 
+
+```{r}
+tab_p["Albemarle", "1"]/tab_p["Monticello", "1"]
+```
+
+
+The ratio of proportions is 1.25. Albemarle has about 25% more homes with fireplaces than Monticello.
+
+### 3-way tables (and beyond)
+
+We can also go beyond two dimensions. This is sometimes called "stratifying" on additional variables.
+
+Cross-tabulation of hsdistrict and fp (fireplace status) stratified by cooling status
+
+```{r}
+tab2 <- xtabs(~ hsdistrict + fp + cooling, data = d)
+tab2
+```
+
+
+portions of table can be extracted with indexing brackets; need to use 3 dimensions.
+
+The third dimension refers to the strata
+
+```{r}
+tab2[,,1]  # cooling = No Central Air
+```
+
+```{r}
+tab2[,,2]  # cooling = Central Air
+```
+
+
+or using names
+
+```{r}
+tab2[,,"No Central Air"]
+```
+
+```{r}
+tab2[,,"Central Air"]  
+```
+
+
+Adding `drop = FALSE` preserves row/column/strata names. This is useful when working with 3 or dimensions.
+
+```{r}
+tab2[, ,"Central Air", drop = FALSE]
+```
+
+
+```{r}
+# Look at Monticello
+tab2["Monticello", , , drop = FALSE]
+```
+
+```{r}
+# Look at fp = 1
+tab2[, "1", ,drop = FALSE]
+```
+
+
+Calculate proportions across rows within each strata.
+
+Within each cooling strata, for each high school district, what proportion of homes have and do not have fireplaces?
+
+```{r}
+tab2 %>% 
+  proportions(margin = c(1, 3)) %>% 
+  round(2)
+```
+
+
+Within each cooling strata, for homes without and with fireplaces, what proportion are in each high school district?
+
+```{r}
+tab2 %>% 
+  proportions(margin = c(2, 3)) %>% 
+  round(2)
+```
+
+For homes with central air, Monticello has 0.32 without a fireplace versus 0.19 for Albemarle. 
+
+```{r}
+tab2 %>% 
+  proportions(margin = c(1, 3)) %>% 
+  round(2)
+```
+
+
+What's the absolute and relative differences?
+
+```{r}
+# save table
+tab2_p <- tab2 |>
+  proportions(margin = c(1, 3)) |>
+  round(2)
+
+```
+
+
+Absolute difference:
+
+```{r}
+tab2_p["Monticello", "0", "Central Air"] - 
+  tab2_p["Albemarle", "0", "Central Air"]
+```
+
+
+Of all homes with central air, the proportion of homes without a fireplace in Monticello is 0.13 higher than the proportion of homes with a fireplace in Albemarle.
+
+Relative difference
+
+```{r}
+tab2_p["Monticello", "0", "Central Air"]/
+  tab2_p["Albemarle", "0", "Central Air"]
+```
+
+
+Of all homes with central air, Monticello has about 68% more homes without a fireplace than Albemarle
+
+Can also calculate counts and proportions based on a condition.
+
+Proportion of homes over 2000 finsqft in size:
+
+```{r}
+mean(d$finsqft > 2000)
+```
+
+Proportion of homes with 3 or 4 bedrooms:
+
+```{r}
+mean(d$bedroom %in% 3:4)
+
+```
+
+
+These conditions can be included in a call to `xtabs()`
+
+```{r}
+xtabs(~ (finsqft > 2000) + hsdistrict, data = d) %>% 
+  proportions(margin = 2) %>% 
+  round(2)
+```
+
+The tidyverse way for counts and proportions requires more work and is documented in an appendix at the end of this script.
+
+## CODE ALONG 1
+
+(1) Compare the absolute and relative proportions of homes with no central air in the Burley and Walton middle school districts.
+
+```{r}
+tp <- xtabs(~ msdistrict + cooling, data = d) %>% 
+  proportions(margin = 1) %>% 
+  round(3)
+tp
+
+# absolute
+tp["Burley", "No Central Air"] - tp["Walton", "No Central Air"]
+
+# relative
+tp["Burley", "No Central Air"]/tp["Walton", "No Central Air"]
+
+```
+
+
+(2) What proportion of homes are on more than 1 acre of land (lotsize) 
+
+```{r}
+mean(d$lotsize > 1)
+```
+
+
+(3) What proportion of homes are on more than 1 acre of land (lotsize) within each hsdistrict?
+
+```{r}
+xtabs(~ (lotsize > 1) + hsdistrict, data = d) %>% 
+  proportions(margin = 2) %>% 
+  round(2)
+```
+
+
+## Summarizing numeric data
+
+`summary()` and `hist()` make a powerful combination for summarizing one variable.
+
+```{r}
+summary(d$lotsize)
+```
+
+```{r}
+hist(d$lotsize)
+```
+
+We can use `breaks` to increase/decrease number of bins
+
+```{r}
+hist(d$lotsize, breaks = 100)
+```
+
+
+Standard deviation and IQR
+
+```{r}
+sd(d$lotsize)
+```
+
+```{r}
+IQR(d$lotsize)
+```
+
+Summarizing discrete numeric data presents unique challenges. Sometimes the mean is nonsensical.
+
+```{r}
+summary(d$bedroom)
+```
+
+Or a histogram hides the discreteness.
+
+```{r}
+hist(d$bedroom)
+```
+
+
+Discrete data may be better visualized with a bar plot, created by first tabling the data.
+
+```{r}
+plot(table(d$bedroom))
+```
+
+ggplot makes it pretty easy to add axis tick mark for 11
+
+```{r}
+ggplot(d) +
+  aes(x = bedroom) +
+  geom_bar() +
+  scale_x_continuous(breaks = 0:12, minor_breaks = FALSE)
+```
+
+### quantiles/percentiles
+
+Given the quantile/percentile, what's the value? What is 75th percentile of home values?
+
+```{r}
+quantile(d$totalvalue, probs = 0.75)
+```
+
+The default returns min/max and quartiles.
+
+```{r}
+quantile(d$totalvalue)
+```
+
+Here's a trick to get deciles. Set `probs = 1:9/10`
+
+```{r}
+quantile(d$totalvalue, probs = 1:9/10)
+```
+
+
+Empirical cumulative distribution (ECD); inverse of quantile
+
+Given the value, what's the quantile/percentile? What percentile is a $500,000 home in?
+
+```{r}
+Fn <- ecdf(d$totalvalue)
+Fn(500000) 
+```
+
+What percentile is a $1,000,000 home in?
+
+```{r}
+Fn(1e6)   
+```
+
+We can also plot the ECD
+
+```{r}
+plot(Fn)
+```
+
+
+### numeric summaries by group
+
+`aggregate()` returns a data frame and uses the same formula notation as `xtabs()`
+
+```{r}
+aggregate(totalvalue ~ hsdistrict, data = d, mean)
+```
+
+```{r}
+aggregate(totalvalue ~ hsdistrict, data = d, median)
+```
+
+```{r}
+aggregate(totalvalue ~ hsdistrict, data = d, IQR)
+```
+
+
+```{r}
+aggregate(totalvalue ~ hsdistrict, data = d, summary) # kind of messy
+```
+
+
+`tapply()` returns a vector or list and requires vectors 
+
+```{r}
+tapply(d$totalvalue, d$hsdistrict, mean)
+```
+
+```{r}
+tapply(d$totalvalue, d$hsdistrict, median)
+```
+
+```{r}
+tapply(d$totalvalue, d$hsdistrict, IQR)
+```
+
+`tapply()` is ideal for use with functions that return lots of values
+
+```{r}
+tapply(d$totalvalue, d$hsdistrict, summary)  # list
+```
+
+```{r}
+tapply(d$totalvalue, d$hsdistrict, quantile)  # list
+```
+
+
+We can include 2 or more groups
+
+Again `aggregate()` returns a data frame; separate groups by `+`
+
+```{r}
+aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
+```
+
+`tapply()` returns a matrix; need to wrap groups in `list()`
+
+```{r}
+tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
+```
+
+Incidentally, the {car} package provides the function `Tapply()` that allows one to use a formula interface as they would with `aggregate()`
+
+```{r}
+car::Tapply(totalvalue ~ + hsdistrict + cooling, data = d, mean)
+```
+
+A matrix is desirable for _reporting_.
+A data frame is desirable for _plotting_. 
+
+For example, make data frame for plotting.
+
+```{r}
+m_df <- aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
+ggplot(m_df) +
+  aes(x = hsdistrict, y = totalvalue, shape = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = 'Median home values by HS District and Central Air status')
+
+```
+
+
+More summaries are available in other R packages; here are two that may be of interest.
+
+```{r}
+psych::describe(d$totalvalue)
+```
+
+```{r}
+Hmisc::describe(d$totalvalue)
+```
+
+
+### Correlation
+
+Summarize linear relationship between finsqft and totalvalue.
+
+```{r}
+cor(d$finsqft, d$totalvalue, method = "pearson")
+```
+
+```{r}
+cor(d$finsqft, d$totalvalue, method = "spearman")
+```
+
+Correlation should always be accompanied by a scatter plot. A smooth trend line can help us assess the nature of the linear relationship.(if any exists)
+
+```{r}
+ggplot(d) +
+  aes(x = finsqft, y = totalvalue) +
+  geom_point() +
+  geom_smooth()
+
+```
+
+
+correlation between bedrooms and full bathrooms
+
+```{r}
+cor(d$bedroom, d$fullbath) # Why NA?
+```
+
+We have missing data
+
+```{r}
+summary(d$bedroom)
+```
+
+```{r}
+summary(d$fullbath)
+```
+
+When data is missing, we can specify `use = "complete.obs"`
+
+```{r}
+cor(d$bedroom, d$fullbath, use = "complete.obs")
+```
+
+
+It's worth noting this is very discrete data
+
+```{r}
+plot(bedroom ~ fullbath, data = d)
+```
+
+Jittering can help reveal where most of the data is located
+
+```{r}
+ggplot(d) +
+  aes(x = fullbath, y = bedroom) +
+  geom_jitter(alpha = 1/5) +
+  scale_x_continuous(breaks = 0:11, minor_breaks = FALSE) +
+  scale_y_continuous(breaks = 0:12, minor_breaks = FALSE)
+```
+
+
+Correlation matrix for more than 2 variables
+
+```{r}
+d %>% 
+  select(totalvalue, finsqft, lotsize) %>% 
+  cor()
+```
+
+
+Here's a quick way to visualize all pairwise scatterplots
+
+```{r}
+d %>% 
+  select(totalvalue, finsqft, lotsize) %>% 
+  pairs()
+```
+
+
+### Log transformations
+
+
+The idea: Take positive, skewed data and hopefully make it more symmetric.
+
+Values clumped together get spread apart, values far away are moved closer to the rest of the data.
+
+```{r}
+hist(d$totalvalue)
+```
+
+log transformed histogram
+
+```{r}
+hist(log(d$totalvalue))
+```
+
+
+To undo a log transformation we take the "anti-log", or exponentiate using the exp() function.
+
+```{r}
+x <- 1200000
+logx <- log(x)
+logx
+exp(logx)
+```
+
+
+mean of untransformed data
+
+```{r}
+mean(d$totalvalue)
+```
+
+mean of log transformed data
+
+```{r}
+mean(log(d$totalvalue))
+```
+
+mean of log transformed data returned to original scale, sometimes called "geometric mean". Notice this mean is closer to the median (407,000) and is less affected by the outliers.
+
+```{r}
+exp(mean(log(d$totalvalue)))
+```
+
+
+## CODE ALONG 2 
+
+(1) summarize finsqft numerically and visually
+
+```{r}
+summary(d$finsqft)
+hist(d$finsqft)
+```
+
+
+(2) What is the 90th percentile of finsqft? In what percentile is 1500 finsqft?
+
+```{r}
+quantile(d$finsqft, probs = 0.90)
+Fsq <- ecdf(d$finsqft)
+Fsq(1500)
+```
+
+
+
+(3) what is the correlation between finsqft and totalrooms (presumably they're correlated)? Compare the correlation to a scatter plot between the two variables.
+
+```{r}
+cor(d$finsqft, d$totalrooms, use = "complete.obs")
+cor(d$finsqft, d$totalrooms, use = "complete.obs", method = "spearman")
+
+```
+
+
+```{r}
+ggplot(d) +
+  aes(x = totalrooms, y = finsqft) +
+  geom_point() +
+  geom_smooth() +
+  xlim(0, 20)
+
+```
+
+
+(4) summarize the log-transformed improvements value. What do we notice?
+
+```{r}
+summary(d$improvementsvalue)
+hist(d$improvementsvalue, breaks = 200)
+summary(log(d$improvementsvalue))
+summary(log(d$improvementsvalue[d$improvementsvalue > 0]))
+
+d %>% 
+  filter(improvementsvalue > 0) %>% 
+  summarise(m = exp(mean(log(improvementsvalue))))
+
+```
+
