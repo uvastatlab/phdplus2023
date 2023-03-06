@@ -739,3 +739,809 @@ d %>%
 
 ```
 
+## Uncertainty 
+
+### Uncertainty about a mean
+
+Let's pretend for a moment we don't have all the data for Albemarle County homes. Instead, we can only sample 50 homes. And we have to use that sample to make our best estimate of the mean totalvalue of homes in Albemarle County.
+
+We can use the `sample()` function to randomly sample elements of a vector. If you run this code will get a different sample than I get. Then we take the mean of our sample.
+
+```{r}
+samp <- sample(d$totalvalue, 50)
+mean(samp)
+```
+
+We will all get different means. How uncertain are our estimates of the population mean? This is one of the fundamental aims of statistical inference: estimating the _standard error_ of an estimate. 
+
+A theoretical estimate of the standard error of the sample means is to take the standard deviation of the sample and divide by the square root of the sample size.
+
+```{r}
+sd(samp)/sqrt(50)  # standard error of the mean
+```
+
+Our estimate of the population mean is our sample mean give or take the standard error. To be on the safe side, give or take two standard errors.
+
+R allows us to easily simulate the process of sampling data and calculating the mean. Below we use the `replicate()` function to replicate our code above 10,000 times.
+
+
+```{r}
+means <- replicate(n = 10000, expr = {
+  samp <- sample(d$totalvalue, 50)
+  mean(samp)
+})
+```
+
+The standard deviation of our 10,00 sample means is the estimated standard error. In theory, standard error is the _standard deviation of the sample means_.
+
+```{r}
+sd(means) # standard error based on 10,000 means
+```
+
+We can add and subtract 2 standard errors from mean to form an approximate 95% confidence interval
+
+```{r}
+SE_m <- sd(means)
+mean(samp) + c(-1, 1)*2*SE_m
+```
+
+
+The above was for educational purposes; in practice we would do something like this using `t.test()`
+
+```{r}
+t.test(samp)
+t.test(samp)$conf.int
+
+```
+
+The {Hmisc} package provides the `smean.cl.normal()` function that returns the means and the lower/upper limits.
+
+```{r}
+Hmisc::smean.cl.normal(samp)
+```
+
+Again, if you're running this code, you're getting a different answer because we all took a different sample.
+
+As our samples get bigger, our standard error decreases. We have more information, therefore there is less uncertainty in our estimate.
+
+To reduce the standard error by 1/2, we need 4 times the sample size. So doubling our sample size of 50 to 100 _does not_ reduce our uncertainty by half. We would need a sample size of 50*4 = 200.
+
+
+### Uncertainty about a proportion
+
+Let's take a random sample of 50 homes' fireplace status. The fp variable is a sequence of zeroes and ones, where a one means a home has at least one fireplace. Taking the mean of zeroes and ones returns the proportion of ones. We use `na.rm = TRUE` in out `mean()` function because some homes are missing this information in our data.
+
+```{r}
+samp2 <- sample(d$fp, 50)
+mean(samp2, na.rm = TRUE)
+```
+
+We should all get a different answer due to the sampling variability.
+
+Let's repeat that code 10,000 times.
+
+```{r}
+props <- replicate(n = 10000, expr = {
+  samp2 <- sample(d$fp, 50)
+  mean(samp2, na.rm = TRUE)
+})
+sd(props) # standard error based on 10,000 means
+```
+
+We can add and subtract 2 standard errors from the proportion to form an approximate 95% confidence interval.
+
+```{r}
+SE_p <- sd(props)
+mean(samp2, na.rm = TRUE) + c(-1, 1)*2*SE_p
+```
+
+The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would estimate a confidence interval using a math formula courtesy of a function such as `prop.test()`. The first argument `x` in `prop.test()` is the number of successes (or homes with fireplaces.) The second argument `n` is the size of our sample.
+
+```{r}
+prop.test(x = sum(samp2, na.rm = TRUE), n = 50)
+```
+
+
+
+### 95% Confidence intervals
+
+The _process_ of calculating a confidence interval works 95% of the time. The "95%" is due to the fact that about 95% of the probability under a normal distribution is within two standard errors of the mean. And most sampling distributions are approximately normal.
+
+Sample 30 values from a Normal distribution with mean 10 and sd 2. We can do this with the `rnorm()` function.
+
+```{r}
+z <- rnorm(30, mean = 10, sd = 2)
+```
+
+Now calculate confidence interval on estimated mean
+
+```{r}
+tout <- t.test(z)
+tout$conf.int
+```
+
+Is true value of 10 contained in confidence interval?
+
+```{r}
+tout$conf.int[1] < 10 & tout$conf.int[2] > 10
+```
+
+
+Repeat the process 1000 times using `replicate()`:
+
+```{r}
+ci_test <- replicate(n = 1000, expr = {
+  z <- rnorm(30, mean = 10, sd = 2)
+  tout <- t.test(z)
+  tout$conf.int[1] < 10 & tout$conf.int[2] > 10
+})
+
+```
+
+The result is a vector of TRUE/FALSE values, which R interprets as ones (TRUE) and zeroes (FALSE). The mean of ones and zeroes is the proportion of ones, or TRUEs in this case.
+
+Proportion of times 95% Confidence Interval contains 10:
+
+```{r}
+mean(ci_test)
+```
+
+Now let's try it with the _very skewed_ homes total values. First we'll calculate the "true" mean since we have virtually all of the data.
+
+```{r}
+true_mean <- mean(d$totalvalue)
+true_mean
+```
+
+Next we take a sample of size 50 and check if the 95% confidence interval contains the "true" mean:
+
+```{r}
+samp <- sample(d$totalvalue, 50)
+tout <- t.test(samp)
+tout$conf.int[1] < true_mean & tout$conf.int[2] > true_mean
+```
+
+Now we repeat the process 1000 times and check the proportion of times our 95% CI contains the true mean:
+
+```{r}
+ci_test <- replicate(n = 1000, expr = {
+  samp <- sample(d$totalvalue, 50, replace = TRUE)
+  tout <- t.test(samp)
+  tout$conf.int[1] < true_mean & tout$conf.int[2] > true_mean
+})
+mean(ci_test)
+
+```
+
+The coverage is actually not 95%! This can happen when sampling from very skewed populations.
+
+Let's try log-transforming our sample.
+
+```{r}
+true_log_mean <- mean(log(d$totalvalue))
+ci_test_log <- replicate(n = 1000, expr = {
+  samp <- sample(d$totalvalue, 50, replace = TRUE)
+  tout <- t.test(log(samp))
+  tout$conf.int[1] < true_log_mean & tout$conf.int[2] > true_log_mean
+})
+mean(ci_test_log)
+
+```
+
+
+Again, in practice we only get one sample. We don't get to resample the population thousands of times.
+
+### Bootstrapping
+
+However we can do something called _bootstrapping_ that treats the sample like the population.
+
+Let's take one sample of size 50:
+
+```{r}
+tv <- sample(d$totalvalue, 50)
+```
+
+Now let's resample from our sample _with replacement_ 1000 times, each time calculating the sample mean.
+
+```{r}
+boot_mean <- replicate(n = 1000, expr = {
+  tv_samp <- sample(tv, replace = TRUE)
+  mean(tv_samp)
+})
+```
+
+The standard deviation of our bootstrap means can serve as an estimate of standard error.
+
+```{r}
+sd(boot_mean)
+```
+
+Further we can get 95% confidence interval using 2.5% and 97.5% percentiles:
+
+```{r}
+quantile(boot_mean, probs = c(0.025, 0.975))
+```
+
+The `smean.cl.boot()` function from the {Hmisc} package does all this for us. If you run this too, you'll get a slightly different result.
+
+```{r}
+Hmisc::smean.cl.boot(tv)
+```
+
+
+Bootstrapping works well for creating confidence intervals for medians.
+
+```{r}
+boot_median <- replicate(n = 1000, expr = {
+  tv_samp <- sample(tv, replace = TRUE)
+  median(tv_samp)
+})
+
+# get 95% CI as 2.5 and 97.5 percentiles
+quantile(boot_median, probs = c(0.025, 0.975))
+```
+
+
+## CODE ALONG 3
+
+The following code randomly samples 120 homes in the Western Albemarle High school district. Use this data frame to answer the following questions.
+
+```{r}
+set.seed(123)
+wa_samp <- d %>% 
+  filter(hsdistrict == "Western Albemarle") %>% 
+  sample_n(120)
+```
+
+
+(1) Calculate 95% confidence interval on mean finsqft
+
+```{r}
+t.test(wa_samp$finsqft)
+smean.cl.normal(wa_samp$finsqft)
+```
+
+
+(2) Does the 95% confidence interval capture the true value?
+
+```{r}
+d %>% 
+  filter(hsdistrict == "Western Albemarle") %>% 
+  summarize(mean(finsqft))
+```
+
+
+(3) Use a bootstrap to calculate a 95% confidence interval for the median age of homes in our sample. Use 1000 bootstraps.
+
+```{r}
+bootout <- replicate(n = 1000, expr = {
+  sage <- sample(wa_samp$age, replace = TRUE)
+  median(sage)
+})
+quantile(bootout, probs = c(0.025, 0.975))
+```
+
+
+(4) Does the 95% bootstrap CI capture the true median age value?
+
+```{r}
+d %>% 
+  filter(hsdistrict == "Western Albemarle") %>% 
+  summarize(median(age))
+```
+
+
+## Hypothesis Testing 
+
+Sometimes researchers do hypothesis testing on "all the data" based on the assumption the data collected is just one sample of a super-population of possibilities.
+
+### Chi-square test of association
+
+Is condition of home associated with high school district? There are small differences in the proportion of average and good homes.
+
+```{r}
+xtabs(~ condition + hsdistrict, data = d) |>
+  proportions(margin = 2) |>
+  round(2)
+```
+
+We can use a Chi-square test of association to investigate. This hypothesis test allows us to calculate the probability of getting differences in proportions as big or bigger assuming no difference among the high school districts.
+
+```{r}
+ct <- xtabs(~ condition + hsdistrict, data = d)
+chisq.test(ct)
+```
+
+As small p-value provides evidence against the null of no association. We might conclude that knowing the high school district gives us some information about the expected condition of a house.
+
+But it's important to note the p-value does not tell us anything about how conditions differ between high school districts.
+
+_Residuals_ tell us which cell counts are bigger/smaller than expected. Values greater than 2.5 or 3 in absolute value are of interest. These are standardized values.
+
+```{r}
+ctest <- chisq.test(ct)
+ctest$residuals
+```
+
+It appears there are more homes in "Good" condition in Albemarle county than expected, and fewer homes in "Good" condition in Monticello then expected.
+
+### two-sample proportion test
+
+Is the difference in proportions of Excellent homes in Albemarle and Western Albemarle "significant"? (Many statisticians hate that phrase)
+
+```{r}
+xtabs(~ condition + hsdistrict, data = d) |>
+  proportions(margin = 2) |>
+  round(2)
+```
+
+To compare two proportions we can use the `prop.test()` function. We need the number of homes that rated "Excellent" and the total number of homes. The `addmargins()` function gives us marginal totals (ie, row sums and column sums)
+
+```{r}
+xtabs(~ condition + hsdistrict, data = d) %>% 
+  addmargins()
+```
+
+
+
+
+```{r}
+prop.test(x = c(189, 239), n = c(12714, 9421))
+```
+
+Statistical it seems significant with such a small p-value, but practically speaking the difference doesn't seem that dramatic.
+
+### two sample t-test
+
+Does totalvalue differ between homes with and without fireplaces? Could investigate with a t-test. We can use R's formula syntax `totalvalue ~ fp` that basically says in this case "compare totalvalue grouped by fp"
+
+```{r}
+t.test(totalvalue ~ fp, data = d)
+```
+
+
+A small p-value provides evidence against the null of no difference, but does not tell us about the difference. Instead look at 95% confidence interval on the difference.
+
+The formal null hypothesis of a two-sample t-test is that both means came from the same normal distribution. 
+
+Maybe we should look at the distribution of totalvalue by fp.
+
+```{r}
+ggplot(filter(d, !is.na(fp))) +
+  aes(x = totalvalue, fill = factor(fp)) +
+  geom_density(alpha = 1/3)
+```
+
+
+Ideally we would like to see the distributions of each group looking roughly symmetric. One option is a log transformation
+
+```{r}
+ggplot(filter(d, !is.na(fp))) +
+  aes(x = log(totalvalue), fill = factor(fp)) +
+  geom_density(alpha = 1/3)
+
+```
+
+Let's try a t-test on the log-transformed data.
+
+```{r}
+tout <- t.test(log(totalvalue) ~ fp, data = d)
+tout
+
+```
+
+We get the same basic result as far as the hypothesis test goes, but the estimated means and confidence interval are on the log scale.
+
+We can use the `exp()` function to undo the log transformation and see the expected mean values, ie the geometric means.
+
+```{r}
+exp(tout$estimate)
+```
+
+
+The confidence limits for the difference between means cannot be transformed back to the original scale
+
+```{r}
+tout$conf.int
+```
+
+Instead, if we exponentiate, we get a 95% CI for the _ratio of the geometric means_. The geometric mean of homes without fireplaces is about 44% - 43% lower than homes with fireplaces. (ie, \$277,741 is about 43-44% lower than \$491,747)
+
+```{r}
+exp(tout$conf.int)
+```
+
+
+```{r}
+1 - exp(tout$conf.int) # about 44% - 43% lower
+```
+
+We can calculate the ratio of the geometric means. It's about 0.56. The 95% CI
+is about [0.55, 0.57]
+
+```{r}
+exp(12.53444)/exp(13.10572)
+```
+
+### Wilcoxon Rank Sum test (aka Mann-Whitney)
+
+Another approach to comparing two groups that appear to have highly non-normal distributions is a non-parametric test that makes no assumptions about the distributions. This compares the _ranks_ of the data instead of the values
+themselves. We can do this with the `wilcox.test()` functioin. This takes a second!
+
+```{r}
+wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
+```
+
+The "difference in location" estimates the median of the difference between a sample from homes with fireplaces and a sample from homes without fireplaces.
+
+
+## CODE ALONG 4
+
+Observe the following proportions
+
+```{r}
+xtabs(~ hsdistrict + fp, data = d) %>% 
+  proportions(margin = 1) %>% 
+  round(2)
+```
+
+
+(1) Assuming no difference in proportion of fireplaces in Albemarle and Western Albemarle high school districts, what is probability we would get data like this or more extreme (0.79 vs 0.75)?
+
+```{r}
+xtabs(~ hsdistrict + fp, data = d) %>% 
+  addmargins()
+prop.test(x = c(9962, 7014), n = c(12615, 9382))
+```
+
+
+## Modeling 
+
+Look at the distribution of total values.
+
+Obviously there is a great deal of variability in the value of a home. What might explain that variability?
+
+```{r}
+hist(d$totalvalue, breaks = 40)
+```
+
+
+Notice some of that variability appears to be associated with finsqft
+
+```{r}
+plot(totalvalue ~ finsqft, data = d)
+```
+
+
+We can attempt to model the totalvalue of a home using finsqft. In other words, create a a math formula that allows us to estimate the expected totalvalue of a home based on its finsqft.
+
+### MODEL 1: simple linear model (one predictor)
+
+model totalvalue as a function of finsqft using the `lm()` function with syntax `totalvalue ~ finsqft`, and save to an object called "m1"
+
+```{r}
+m1 <- lm(totalvalue ~ finsqft, data = d)
+summary(m1)
+
+```
+
+e+05 is scientific notation; it means move the decimal 5 places to the right.
+
+We can view the coefficients of a model using the `coef()` function. Sometimes this helps with the scientific notation.
+
+```{r}
+coef(m1)
+```
+
+The fitted model:
+
+```
+totalvalue = -164163.6587 + 314.6012*finsqft + ERROR
+```
+where ERROR is a random draw from a Normal dist with mean = 0 and sd = 259300. Predicted totalvalue using the model is expected to be off by about \$259,300.
+
+Interpretation:
+Each additional finsqft adds about \$314 to value of home. This is an _absolute_ effect. Whether you have 1500 finsqft or 2500 finsqft, we can expect each additional finsqft to add about \$314 to the totalvalue.
+
+The `confint()` function reports 95% confidence intervals on the model coefficients.
+
+```{r}
+confint(m1)
+```
+
+Let's use our model to make a prediction.
+
+What is the expected _mean value_ of homes with 2500 finsqft?
+
+```{r}
+predict(m1, newdata = data.frame(finsqft = 2500), 
+        interval = "confidence")
+```
+
+
+What is the expected _value of a single home_ with 2500 finsqft?
+
+```{r}
+predict(m1, newdata = data.frame(finsqft = 2500), 
+        interval = "prediction")
+```
+
+But is this a good model? Should we trust these predictions?
+
+Adjusted R-squared:  0.578 
+This suggests about 58% of the variation in totalvalue is "explained" by finsqft.
+
+Can also look at residuals versus fitted value plot
+residual = observed value - fitted value
+
+There are 6 available plots; we ask for the first plot
+
+```{r}
+plot(m1, which = 1)
+```
+
+The dotted line is 0. Values above the line have higher totalvalues than the model predicts. Values below the line have lower totalvalues than the model predicts. Ideally we would like to see these points hover steadily around 0 throughout the range of predicted values.
+
+Verdict: Not great, but perhaps somewhat useful. Predicted values seem to get worse as the predicted values get bigger. 
+
+### MODEL 2: log transformed response
+
+When working with dollar amounts it is common to log transform the values. Dollar amounts, especially for things like properties and salaries, can be skewed. That's often because they scale multiplicatively as they get larger. (Salaries don't go up by $1000. They go up by 3%.)
+
+Let's model log-transformed totalvalue as a function of finsqft. This changes how we interpret the finsqft coefficient
+
+```{r}
+m2 <- lm(log(totalvalue) ~ finsqft, data = d)
+summary(m2)
+```
+
+We can get a better sense of the finsqft coefficient by multiplying by 100.
+
+```{r}
+coef(m2)["finsqft"] * 100
+```
+
+Every additional 100 finsqft adds about 5% to totalvalue of home. This is a _relative_ effect. The 5% change is constant, but relative to the current totalvalue.
+
+Is this a good model? The residual vs fitted plot is a good first check.
+
+```{r}
+plot(m2, which = 1)
+```
+
+
+Verdict: Now predicted values seem worse for smaller predicted values. 
+
+### MODEL 3: non-linear effect of predictor
+
+In the previous two models we assumed the effect of finsqft was _linear_ (ie, it had a constant slope). Going from 1500 - 1600 finsqft has the same effect on totalvalue as going from 2500 - 2600 finsqft.
+
+It may be more realistic to assume a _non-linear_ effect. This is, an effect that is not constant. Maybe adding more finsqft to a home has a more dramatic impact on totalvalue when the home has around 1500 finsqft verus a home that is 3500 finsqft.
+
+We can model non-linear effects using _natural splines_. The {splines} package that comes with R makes this relatively easy to implement. Splines are more sophisticated and better behaved than polynomials.
+
+The `ns(finsqft, df = 2)` code is similar to fitting a polynomial: x + x^2
+
+```{r}
+library(splines)
+m3 <- lm(log(totalvalue) ~ ns(finsqft, df = 2), data = d)
+summary(m3)
+```
+
+There is no interpretation of coefficients! The effect is not a simple coefficient. Before we worry about interpretation, is this a good model?
+
+```{r}
+plot(m3, which = 1)
+```
+
+Verdict: This seems like an improvement on model 2
+
+Let's visualize and use the model
+
+```{r}
+ggpredict(m3, terms = "finsqft") %>% 
+  plot()
+```
+
+
+`dot.alpha = 0.1` changes transparency of dots
+
+```{r}
+ggpredict(m3, terms = "finsqft") %>% 
+  plot(add.data = TRUE, dot.alpha = 0.1)
+
+```
+
+
+Use predict() to make model predictions; need to exponentiate
+
+```{r}
+predict(m3, newdata = data.frame(finsqft = 2500)) %>% exp()
+
+```
+
+expected mean value of homes with 2500 finsqft
+
+```{r}
+predict(m3, newdata = data.frame(finsqft = 2500), 
+        interval = "confidence") %>% exp()
+
+```
+
+expected value of a home with 2500 finsqft
+
+```{r}
+predict(m3, newdata = data.frame(finsqft = 2500), 
+        interval = "prediction") %>% exp()
+
+```
+
+`ggpredict()` makes it easy to get multiple predictions and 95% CIs. The CIs are for expected mean values.
+
+```{r}
+ggpredict(m3, terms = "finsqft[1500:3000 by=500]") 
+
+```
+
+
+Let's build a more complex model with multiple predictors, including finsqft, cooling, and fullbath.
+
+Notice we allow finsqft to interact with cooling;
+
+This says the association between totalvalue and finsqft depends on cooling.
+
+```{r}
+m4 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) + cooling + 
+           ns(finsqft, df = 2):cooling + 
+           fullbath, 
+         data = d)
+summary(m4)
+```
+
+
+An Analysis of Variance Table can help us assess whether or not interactions are warranted. 
+
+```{r}
+anova(m4)
+```
+
+
+The first line is a hypothesis test comparing a model with no predictors (just the overall mean) to a model with ns(finsqft, df = 2). The null is no difference between the models. This is soundly rejected.
+
+The second line is a hypothesis test comparing a model with ns(finsqft, df = 2) to a model with ns(finsqft, df = 2) and cooling. The null is no difference between models. This is also soundly rejected. And so on down the table.
+
+The last line tests whether the interaction should be included. Based on the p-value it seems warranted.
+
+This seems like an OK model, at least for most homes
+
+```{r}
+plot(m4, which = 1)
+```
+
+
+Visualize model 
+
+The interaction appears to happen after 5000 finsqft. But the thick confidence ribbon indicates there are few (if any) homes that big without cooling.
+
+```{r}
+ggpredict(m4, terms = c("finsqft", "cooling")) %>% 
+  plot()
+```
+
+
+The "significant" interaction doesn't seem that interesting when zoomed in on a reasonable range of finsqft
+
+```{r}
+ggpredict(m4, terms = c("finsqft[1000:5000]", "cooling")) %>% 
+  plot()
+```
+
+
+View the effect of fullbaths from 1 - 5
+
+
+```{r}
+ggpredict(m4, terms = "fullbath[1:5]") %>% 
+  plot()
+```
+
+
+Notice this plot is for cooling = No Central Air and finsqft = 1936.
+
+```{r}
+ggpredict(m4, terms = "fullbath[1:5]")
+```
+
+
+We can manually set the "conditional" values using the condition argument; notice the shape doesn't change, just the y-axis.
+
+```{r}
+ggpredict(m4, terms = "fullbath[1:5]", 
+          condition = list(cooling = "Central Air",
+                           finsqft = 2000)) %>% 
+  plot()
+```
+
+
+Many hypothesis tests are special cases of linear models
+
+ANOVA (one categorical predictor)
+
+```{r}
+m5 <- lm(totalvalue ~ hsdistrict, data = d)
+anova(m5)
+ggpredict(m5, terms = "hsdistrict") %>% plot()
+
+```
+
+
+t-test (one binary predictor)
+
+```{r}
+m6 <- lm(log(totalvalue) ~ cooling, data = d)
+summary(m6)
+ggpredict(m6, terms = "cooling") %>% plot()
+
+```
+
+
+2-sample proportion test (logistic regression)
+
+```{r}
+m7 <- glm(fp ~ hsdistrict, data = d, family = binomial)
+summary(m7)
+ggpredict(m7, terms = "hsdistrict") %>% 
+  plot()
+
+```
+
+
+There are many big books on linear modeling. This was not comprehensive!
+
+# CODE ALONG 5 ------------------------------------------------------------
+
+(1) Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using lm(). Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
+
+```{r}
+mod1 <- lm(log(totalvalue) ~ finsqft + hsdistrict + finsqft:hsdistrict, data = d)
+anova(mod1)
+
+ggpredict(mod1, terms = c("finsqft[1000:4000 by = 200]", "hsdistrict")) %>% 
+  plot()
+```
+
+
+
+(2) Model remodel as a function of hsdistrict using glm(). Name the model mod2. In other words, model the probability a home has been remodeled based on the high school district it is located in. Visualize the model.
+
+```{r}
+mod2 <- glm(remodel ~ hsdistrict, data = d, family = binomial)
+summary(mod2)
+ggpredict(mod2, terms = "hsdistrict")
+ggpredict(mod2, terms = "hsdistrict") %>% plot()
+
+```
+
+
+
+
+
+## Appendix: bootstrap CI coverage 
+
+How often does a bootstrap CI capture the true mean?
+
+```{r}
+# install the pbapply package so we can have progress bar
+install.packages("pbapply")
+ci_test_boot <- pbapply::pbreplicate(n = 1000, expr = {
+  boot_mean <- replicate(n = 1000, expr = {
+    tv_samp <- sample(tv, replace = TRUE)
+    mean(tv_samp)
+  })
+  boot_ci <- quantile(boot_mean, probs = c(0.025, 0.975))
+  boot_ci[1] < true_mean & boot_ci[2] > true_mean
+})
+mean(ci_test_boot)
+```
+
+
