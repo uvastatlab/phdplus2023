@@ -58,7 +58,7 @@ Interpreting a relative increase as absolute can make it seem more important tha
 
 ## Determining change
 
-Given two proportions or percents...
+Given before and after proportions/percents...
 
 -   use subtraction to determine **absolute** change
 -   division (or a ratio) to determine **relative** change
@@ -197,7 +197,7 @@ par(op)
 
 ## Standard Deviation and IQR
 
-Standard Deviation is really only appropriate for symmetric data. Like the mean, it can be easily influenced by extreme values.
+Standard Deviation is basically how far a given value is expected to be from the mean. It's really only appropriate for symmetric data. Like the mean, it can be easily influenced by extreme values.
 
 IQR is the difference between the 75th and 25th percentiles. It contains the middle 50% of the data. It is unaffected by extreme values.
 
@@ -292,7 +292,7 @@ plot(totalvalue ~ finsqft, data = samp_d)
 
 Correlation is a single value that can (sometimes) summarize a relationship between two sets of numeric data.
 
-Correlation is unitless and ranges from -1 to 1. It expresses how close dots fall along a straight line. [See this useful Wikipedia illustration](https://en.wikipedia.org/wiki/Correlation_and_dependence#/media/File:Correlation_examples2.svg)
+Correlation is unitless and ranges from -1 to 1. It expresses how close dots fall along a line. [See this useful Wikipedia illustration](https://en.wikipedia.org/wiki/Correlation_and_dependence#/media/File:Correlation_examples2.svg)
 
 **Pearson** correlation measures linear association.\
 **Spearman** *rank* correlation can measure non-linear association such as curved lines.
@@ -366,12 +366,12 @@ However it turns out the distribution of sample means calculated from most distr
 ```{r}
 set.seed(1234)
 means <- replicate(n = 1000, expr = {
-  mean(rchisq(n = 30, df = 3))
+  mean(rchisq(n = 30, df = 8))
 })
 
 op <- par(mfrow = c(1,2), pty = "s")
-curve(dchisq(x, df = 3), from = 0, to = 10, ylab = "", xlab = "", 
-      main = "skewed population\nmean = 3")
+curve(dchisq(x, df = 8), from = 0, to = 20, ylab = "", xlab = "", 
+      main = "skewed population\nmean = 8")
 plot(density(means), ylab = "", xlab = "", main = "distribution of 1000 sample means\nfrom skewed population (n=30)")
 par(op)
 ```
@@ -384,7 +384,7 @@ Adding and subtracting standard errors to our estimate forms an interval of what
 
 The most common interval calculated is the _95% confidence interval_ (CI).
 
-We say "95%" because the method should work 95% of the time based on how many standard errors we add/subtract to create the interval.
+We say "95%" because the method should work 95% of the time based on the number of standard errors we add/subtract to create the interval.
 
 We call it "confidence" because we are confident in the method. 
 
@@ -414,7 +414,7 @@ What does "p < 0.0001" mean?
 
 Let's say we believe a coin is fair and lands heads 50% of the time.
 
-We flip it 20 times and get 18 heads. That's 18/20 = 90%.
+We flip it 20 times and get 18 heads. That's 18/20 = 0.90, or 90%.
 
 If the coin was really fair, what is the probability of getting 18 _or more_ heads?
 
@@ -561,12 +561,12 @@ R is exceptionally good for building linear models. Perhaps too good.
 Building linear models in R is rather easy. Picking which predictors to include, specifying the model, and evaluating model performance is much harder.
 
 ::: callout-tip
-Controlled paranoia is useful for building and interpreting linear models.
+Controlled paranoia is useful for building and evaluating linear models.
 ::: 
 
 ## It's all linear models
 
-Many statistical tests are special cases of a linear model.
+Many hypothesis tests are special cases of a linear model.
 
 - 1-sample t-test: linear model with just an intercept
 - 2-sample t-test: linear model with a binary predictor

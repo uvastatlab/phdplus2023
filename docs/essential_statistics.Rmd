@@ -16,23 +16,59 @@ library(tidyverse)
 library(ggeffects)
 ```
 
-Read in data from Git Hub
+Read in the homes data from GitHub. The data is saved as an RDS file, which is the format for saving R objects. We need to use the `readRDS()` to read in the file. Notice we have to assign the result a name. I chose "d" because it's easy to type. Since the RDS file is on GitHub and accessed through a URL, we need to use the `url()` function to open the connection.
 
 ```{r}
 URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/albemarle_homes_2023.rds"
 d <- readRDS(url(URL))
 ```
 
-Drop homes that are not assigned to a hsdistrict and then drop the unused levels.
+Before we get started, I want to drop the 5 home records that are not assigned to a school district. Below I select the three school district columns and apply the table function to those columns using the `map()` function which is from of the {purrr} package.
+
+```{r}
+d %>% 
+  select(hsdistrict, msdistrict, esdistrict) %>% 
+  map(table)
+```
+
+It turns out these 5 homes are not assigned to any school district.
+
+```{r}
+d %>% 
+  filter(hsdistrict == "Unassigned") %>% 
+  select(hsdistrict, msdistrict, esdistrict) 
+  
+```
+
+I don't want to just drop the records. I also want to drop the Unassigned _level_ so it doesn't continue to appear in our analysis as having 0 records. For example, notice how the `table()` function shows Unassigned as 0 even after the call to `filter()`.
+
+
+```{r}
+d %>% 
+  filter(hsdistrict != "Unassigned") %>% 
+  select(hsdistrict, msdistrict, esdistrict) %>% 
+  map(table)
+
+```
+
+We can use the `droplevels()` function to drop levels with 0 counts.
 
 ```{r}
 d <- d %>% 
-  filter(hsdistrict != "Unassigned") %>%  
+  filter(hsdistrict != "Unassigned") %>%
   mutate(hsdistrict = droplevels(hsdistrict),
          msdistrict = droplevels(msdistrict),
          esdistrict = droplevels(esdistrict))
-
 ```
+
+Now our tables show no level for "Unassigned"
+
+```{r}
+d %>% 
+  select(hsdistrict, msdistrict, esdistrict) %>% 
+  map(table)
+```
+
 
 ## Counts and proportions
 
@@ -49,7 +85,7 @@ table(d$hsdistrict) %>% proportions()
 ```
 
 
-We can also use `xtabs()` function that allows us to use R's formula syntax.
+We can also use `xtabs()` function that allows us to use R's formula syntax. The synatx `~ hsdistrict` means count up by hsdistrict. Notice it includes the name of the variable in the output.
 
 ```{r}
 xtabs( ~ hsdistrict, data = d)
@@ -109,15 +145,15 @@ tab[1,2]
 Adding `drop=FALSE` preserves table structure
 
 ```{r}
-tab[1,,drop = FALSE]
+tab[1, , drop = FALSE]
 ```
 
 ```{r}
-tab[,1, drop = FALSE]
+tab[, 1, drop = FALSE]
 ```
 
 ```{r}
-tab[1,2, drop = FALSE]
+tab[1, 2, drop = FALSE]
 ```
 
 We can also use row and column names to extract rows/columns/cells
@@ -135,8 +171,7 @@ tab["Albemarle", "1"]
 ```
 
 
-
-Given high school district, what proportion of homes do and do not have fireplaces? Condition on rows. (row proportions sum to 1)
+Given high school district, what proportion of homes do and do not have fireplaces? Condition on rows by setting `margin = 1`. (row proportions sum to 1)
 
 ```{r}
 tab %>% 
@@ -145,7 +180,7 @@ tab %>%
 ```
 
 
-Given homes with and without fireplaces, what proportions are in each high school district? Condition on columns (column proportions sum to 1)
+Given homes with and without fireplaces, what proportions are in each high school district? Condition on columns by setting `margin = 2` (column proportions sum to 1)
 
 ```{r}
 tab %>% 
@@ -194,28 +229,28 @@ The ratio of proportions is 1.25. Albemarle has about 25% more homes with firepl
 
 We can also go beyond two dimensions. This is sometimes called "stratifying" on additional variables.
 
-Cross-tabulation of hsdistrict and fp (fireplace status) stratified by cooling status
+Cross-tabulation of hsdistrict and fp (fireplace status) _stratified_ by cooling status: `~ hsdistrict + fp + cooling` (The last variable will be the stratifying variable, or 3rd dimension)
 
 ```{r}
 tab2 <- xtabs(~ hsdistrict + fp + cooling, data = d)
 tab2
 ```
 
-
-portions of table can be extracted with indexing brackets; need to use 3 dimensions.
+Portions of table can be extracted with indexing brackets; need to use 3 dimensions.
 
 The third dimension refers to the strata
 
 ```{r}
-tab2[,,1]  # cooling = No Central Air
+# all rows, all columns, 1st dimension: cooling = No Central Air
+tab2[,,1] 
 ```
 
 ```{r}
-tab2[,,2]  # cooling = Central Air
+# all rows, all columns, 2nd dimension: cooling = Central Air
+tab2[,,2] 
 ```
 
-
-or using names
+Or using names
 
 ```{r}
 tab2[,,"No Central Air"]
@@ -229,24 +264,24 @@ tab2[,,"Central Air"]
 Adding `drop = FALSE` preserves row/column/strata names. This is useful when working with 3 or dimensions.
 
 ```{r}
-tab2[, ,"Central Air", drop = FALSE]
+tab2[, , "Central Air", drop = FALSE]
 ```
 
 
 ```{r}
-# Look at Monticello
+# Monticello, all columns, all strata
 tab2["Monticello", , , drop = FALSE]
 ```
 
 ```{r}
-# Look at fp = 1
+# all rows, fp = "1", all strata 
 tab2[, "1", ,drop = FALSE]
 ```
 
 
 Calculate proportions across rows within each strata.
 
-Within each cooling strata, for each high school district, what proportion of homes have and do not have fireplaces?
+Within each cooling strata, for each high school district, what proportion of homes have and do not have fireplaces? Set `margin = c(1, 3)` (ie, across rows, within each strata)
 
 ```{r}
 tab2 %>% 
@@ -255,7 +290,7 @@ tab2 %>%
 ```
 
 
-Within each cooling strata, for homes without and with fireplaces, what proportion are in each high school district?
+Within each cooling strata, for homes without and with fireplaces, what proportion are in each high school district? Set `margin = c(2, 3)` (ie, down columns, within each strata)
 
 ```{r}
 tab2 %>% 
@@ -276,8 +311,8 @@ What's the absolute and relative differences?
 
 ```{r}
 # save table
-tab2_p <- tab2 |>
-  proportions(margin = c(1, 3)) |>
+tab2_p <- tab2 %>% 
+  proportions(margin = c(1, 3)) %>% 
   round(2)
 
 ```
@@ -366,7 +401,7 @@ xtabs(~ (lotsize > 1) + hsdistrict, data = d) %>%
 
 ## Summarizing numeric data
 
-`summary()` and `hist()` make a powerful combination for summarizing one variable.
+`summary()` and `hist()` make a powerful combination for summarizing one variable. Let's investidate the lotsize variable.
 
 ```{r}
 summary(d$lotsize)
@@ -376,14 +411,14 @@ summary(d$lotsize)
 hist(d$lotsize)
 ```
 
-We can use `breaks` to increase/decrease number of bins
+We can use the `breaks` argument to increase/decrease number of bins.
 
 ```{r}
 hist(d$lotsize, breaks = 100)
 ```
 
 
-Standard deviation and IQR
+The standard deviation and IQR are wildly different. If we had to pick one to summarize the spread, we would probably choose IQR since the data is not symmetric.
 
 ```{r}
 sd(d$lotsize)
@@ -399,7 +434,7 @@ Summarizing discrete numeric data presents unique challenges. Sometimes the mean
 summary(d$bedroom)
 ```
 
-Or a histogram hides the discreteness.
+Histograms can hide the discreteness.
 
 ```{r}
 hist(d$bedroom)
@@ -409,7 +444,7 @@ hist(d$bedroom)
 Discrete data may be better visualized with a bar plot, created by first tabling the data.
 
 ```{r}
-plot(table(d$bedroom))
+table(d$bedroom) %>% plot()
 ```
 
 ggplot makes it pretty easy to add axis tick mark for 11
@@ -442,9 +477,11 @@ quantile(d$totalvalue, probs = 1:9/10)
 ```
 
 
-Empirical cumulative distribution (ECD); inverse of quantile
+### Empirical cumulative distribution (ECD)
 
-Given the value, what's the quantile/percentile? What percentile is a $500,000 home in?
+The ECD is the inverse of quantile.
+
+Given the value, what's the quantile/percentile? What percentile is a $500,000 home in? Use the `ecdf()` function to create a function from the data to return quantiles.
 
 ```{r}
 Fn <- ecdf(d$totalvalue)
@@ -464,9 +501,11 @@ plot(Fn)
 ```
 
 
-### numeric summaries by group
+### Numeric summaries by group
 
-`aggregate()` returns a data frame and uses the same formula notation as `xtabs()`
+We often to calculate summaries by groups. For example, what is the mean totalvalue by high school district?
+
+The `aggregate()` function can help us do this. It returns a data frame and uses the same formula syntax as `xtabs()`. Place the numeric variable on the left hand side. The last argument is the function we wish to use to summarize the numeric data in each group.
 
 ```{r}
 aggregate(totalvalue ~ hsdistrict, data = d, mean)
@@ -480,13 +519,14 @@ aggregate(totalvalue ~ hsdistrict, data = d, median)
 aggregate(totalvalue ~ hsdistrict, data = d, IQR)
 ```
 
+We can also define our own functions. Below we calculate the proportion of homes valued at over 1 million dollars in each high school district.
 
 ```{r}
-aggregate(totalvalue ~ hsdistrict, data = d, summary) # kind of messy
+aggregate(totalvalue ~ hsdistrict, data = d, function(x)mean(x > 1e6)) 
+
 ```
 
-
-`tapply()` returns a vector or list and requires vectors 
+The `tapply()` returns a vector or list and requires vectors.
 
 ```{r}
 tapply(d$totalvalue, d$hsdistrict, mean)
@@ -500,7 +540,7 @@ tapply(d$totalvalue, d$hsdistrict, median)
 tapply(d$totalvalue, d$hsdistrict, IQR)
 ```
 
-`tapply()` is ideal for use with functions that return lots of values
+`tapply()` is ideal for use with functions that return lots of values. For example, using the `summary()` for totalvalue within each high school district.
 
 ```{r}
 tapply(d$totalvalue, d$hsdistrict, summary)  # list
@@ -511,15 +551,15 @@ tapply(d$totalvalue, d$hsdistrict, quantile)  # list
 ```
 
 
-We can include 2 or more groups
+We can also include 2 or more groups with `tapply()` and `aggregate()`
 
-Again `aggregate()` returns a data frame; separate groups by `+`
+For `aggregate()`, separate groups by `+`. The result is a data frame
 
 ```{r}
 aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
 ```
 
-`tapply()` returns a matrix; need to wrap groups in `list()`
+For `tapply()`, wrap groups in `list()`. The result is a matrix.
 
 ```{r}
 tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
@@ -534,27 +574,60 @@ car::Tapply(totalvalue ~ + hsdistrict + cooling, data = d, mean)
 A matrix is desirable for _reporting_.
 A data frame is desirable for _plotting_. 
 
-For example, make data frame for plotting.
+For example, notice how we can directly pipe the output of `aggregate()`, a data frame, into ggplot code for for plotting.
 
 ```{r}
-m_df <- aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
-ggplot(m_df) +
-  aes(x = hsdistrict, y = totalvalue, shape = cooling) +
+aggregate(totalvalue ~ hsdistrict + cooling, data = d, median) %>% 
+  ggplot() +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
   geom_point(size = 3) +
   scale_y_continuous(labels = scales::dollar) +
   labs(title = 'Median home values by HS District and Central Air status')
 
 ```
 
-
-More summaries are available in other R packages; here are two that may be of interest.
+Some R users prefer using tidyverse functions for this type of summary, but notice the missing values are included by default in the legend.
 
 ```{r}
-psych::describe(d$totalvalue)
+d %>% 
+  group_by(hsdistrict, cooling) %>% 
+  summarize(totalvalue = median(totalvalue)) %>% 
+  ggplot() +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = 'Median home values by HS District and Central Air status')
+```
+
+To drop the missing values we need to filter them out. Below `!is.na()` means filter out the records that are not missing a value for cooling.
+
+```{r}
+d %>% 
+  filter(!is.na(cooling)) %>% 
+  group_by(hsdistrict, cooling) %>% 
+  summarize(totalvalue = median(totalvalue)) %>% 
+  ggplot() +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = 'Median home values by HS District and Central Air status')
+```
+
+
+More summaries are available in other R packages; here are two that may be of interest. Notice we can reference functions from other packages without loading the packages using the `package::function` notation.
+
+```{r}
+# describe() from the psych package
+d %>% 
+  select(totalvalue, finsqft, lotsize) %>% 
+  psych::describe()
 ```
 
 ```{r}
-Hmisc::describe(d$totalvalue)
+# describe() from the Hmisc package
+d %>% 
+  select(totalvalue, finsqft, lotsize) %>% 
+  Hmisc::describe()
 ```
 
 
@@ -610,7 +683,7 @@ It's worth noting this is very discrete data
 plot(bedroom ~ fullbath, data = d)
 ```
 
-Jittering can help reveal where most of the data is located
+Jittering can help reveal where most of the data is located.
 
 ```{r}
 ggplot(d) +
@@ -621,7 +694,7 @@ ggplot(d) +
 ```
 
 
-Correlation matrix for more than 2 variables
+The `cor()` function works for data frames. This allows us to calculate correlation matrices. Below we select three columns and then pipe into the `cor()` function.  
 
 ```{r}
 d %>% 
@@ -629,8 +702,7 @@ d %>%
   cor()
 ```
 
-
-Here's a quick way to visualize all pairwise scatterplots
+As always, we should visualize the data. Here's a quick way to visualize all pairwise scatterplots using the base R `pairs()` function.
 
 ```{r}
 d %>% 
@@ -657,29 +729,28 @@ hist(log(d$totalvalue))
 ```
 
 
-To undo a log transformation we take the "anti-log", or exponentiate using the exp() function.
+To undo a log transformation we take the "anti-log", or exponentiate using the `exp()` function.
 
 ```{r}
 x <- 1200000
 logx <- log(x)
 logx
-exp(logx)
+exp(logx) # the anti-log
 ```
 
-
-mean of untransformed data
+Mean of untransformed data
 
 ```{r}
 mean(d$totalvalue)
 ```
 
-mean of log transformed data
+Mean of log transformed data
 
 ```{r}
 mean(log(d$totalvalue))
 ```
 
-mean of log transformed data returned to original scale, sometimes called "geometric mean". Notice this mean is closer to the median (407,000) and is less affected by the outliers.
+When we take the anti-log of the mean of the log-transformed values, we get the "geometric mean". Notice this mean is closer to the median (407,000) and is less affected by the outliers.
 
 ```{r}
 exp(mean(log(d$totalvalue)))
@@ -760,7 +831,9 @@ A theoretical estimate of the standard error of the sample means is to take the 
 sd(samp)/sqrt(50)  # standard error of the mean
 ```
 
-Our estimate of the population mean is our sample mean give or take the standard error. To be on the safe side, give or take two standard errors.
+Again, if you're following along in your version of this notebook, you got a different standard error.
+
+Our estimate of the population mean is our sample mean give or take the standard error. To be on the safe side, we usually give or take about two standard errors.
 
 R allows us to easily simulate the process of sampling data and calculating the mean. Below we use the `replicate()` function to replicate our code above 10,000 times.
 
@@ -772,7 +845,7 @@ means <- replicate(n = 10000, expr = {
 })
 ```
 
-The standard deviation of our 10,00 sample means is the estimated standard error. In theory, standard error is the _standard deviation of the sample means_.
+The standard deviation of our 10,000 sample means is the estimated standard error. In theory, standard error is the _standard deviation of the sample means_.
 
 ```{r}
 sd(means) # standard error based on 10,000 means
@@ -785,8 +858,7 @@ SE_m <- sd(means)
 mean(samp) + c(-1, 1)*2*SE_m
 ```
 
-
-The above was for educational purposes; in practice we would do something like this using `t.test()`
+The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would take our single sample and estimate a confidence interval using a math formula courtesy of a function such as `t.test()`
 
 ```{r}
 t.test(samp)
@@ -794,7 +866,7 @@ t.test(samp)$conf.int
 
 ```
 
-The {Hmisc} package provides the `smean.cl.normal()` function that returns the means and the lower/upper limits.
+The {Hmisc} package provides the `smean.cl.normal()` function that returns the mean and the lower/upper limits.
 
 ```{r}
 Hmisc::smean.cl.normal(samp)
@@ -804,7 +876,7 @@ Again, if you're running this code, you're getting a different answer because we
 
 As our samples get bigger, our standard error decreases. We have more information, therefore there is less uncertainty in our estimate.
 
-To reduce the standard error by 1/2, we need 4 times the sample size. So doubling our sample size of 50 to 100 _does not_ reduce our uncertainty by half. We would need a sample size of 50*4 = 200.
+NOTE: To reduce the standard error by 1/2, we need 4 times the sample size. So doubling our sample size of 50 to 100 _does not_ reduce our uncertainty by half. We would need a sample size of 50*4 = 200.
 
 
 ### Uncertainty about a proportion
@@ -835,25 +907,39 @@ SE_p <- sd(props)
 mean(samp2, na.rm = TRUE) + c(-1, 1)*2*SE_p
 ```
 
-The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would estimate a confidence interval using a math formula courtesy of a function such as `prop.test()`. The first argument `x` in `prop.test()` is the number of successes (or homes with fireplaces.) The second argument `n` is the size of our sample.
+The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would take our single sample and estimate a confidence interval using a math formula courtesy of a function such as `prop.test()`. The first argument `x` in `prop.test()` is the number of successes (or homes with fireplaces.) The second argument `n` is the size of our sample.
 
 ```{r}
 prop.test(x = sum(samp2, na.rm = TRUE), n = 50)
+prop.test(x = sum(samp2, na.rm = TRUE), n = 50)$conf.int
 ```
 
+The {binom} package provides the `binom.confint()` function that returns the proportion and the lower/upper limits of 11 different intervals (!). Different intervals may be preferred when your estimated proportion is near 0 or 1 and/or your sample size is small.
+
+```{r}
+binom::binom.confint(x = sum(samp2, na.rm = TRUE), n = 50)
+```
 
 
 ### 95% Confidence intervals
 
 The _process_ of calculating a confidence interval works 95% of the time. The "95%" is due to the fact that about 95% of the probability under a normal distribution is within two standard errors of the mean. And most sampling distributions are approximately normal.
 
-Sample 30 values from a Normal distribution with mean 10 and sd 2. We can do this with the `rnorm()` function.
+Imagine a population that is truly massive, trillions in size, virtually infinite, normally distributed with a mean of 10 and a standard deviation of 2. Here's a picture of the distribution of that population:
+
+```{r}
+# dnorm() is the formula to draw the Normal dist'n
+curve(dnorm(x, mean = 10, sd = 2,), from = (10 - 6), to = (10 + 6), 
+      main = "distribution of huge population", ylab = "", xlab = "")
+```
+
+Let's pretend to sample 30 values from this population. We can do this with the `rnorm()` function.
 
 ```{r}
 z <- rnorm(30, mean = 10, sd = 2)
 ```
 
-Now calculate confidence interval on estimated mean
+Now calculate confidence interval on estimated mean using the `t.test()` function.
 
 ```{r}
 tout <- t.test(z)
@@ -885,6 +971,8 @@ Proportion of times 95% Confidence Interval contains 10:
 ```{r}
 mean(ci_test)
 ```
+
+We just demonstrated the idea of the confidence interval. We are confident in the process. 
 
 Now let's try it with the _very skewed_ homes total values. First we'll calculate the "true" mean since we have virtually all of the data.
 
@@ -928,6 +1016,7 @@ mean(ci_test_log)
 
 ```
 
+This has the stated 95% coverage. We might say we're confident in the process of calculating confidence intervals for log-transformed data.
 
 Again, in practice we only get one sample. We don't get to resample the population thousands of times.
 
@@ -950,7 +1039,7 @@ boot_mean <- replicate(n = 1000, expr = {
 })
 ```
 
-The standard deviation of our bootstrap means can serve as an estimate of standard error.
+The standard deviation of our bootstrap means can serve as an estimate of _standard error_.
 
 ```{r}
 sd(boot_mean)
@@ -1045,14 +1134,14 @@ xtabs(~ condition + hsdistrict, data = d) |>
   round(2)
 ```
 
-We can use a Chi-square test of association to investigate. This hypothesis test allows us to calculate the probability of getting differences in proportions as big or bigger assuming no difference among the high school districts.
+We can use a Chi-square test of association to investigate. This hypothesis test allows us to calculate the probability of getting differences in proportions as big or bigger assuming no difference among the high school districts. The `chisq.test()` function can be used with a table object.
 
 ```{r}
 ct <- xtabs(~ condition + hsdistrict, data = d)
 chisq.test(ct)
 ```
 
-As small p-value provides evidence against the null of no association. We might conclude that knowing the high school district gives us some information about the expected condition of a house.
+A small p-value provides evidence against the null of no association. We might conclude that knowing the high school district gives us some information about the expected condition of a house.
 
 But it's important to note the p-value does not tell us anything about how conditions differ between high school districts.
 
@@ -1072,7 +1161,7 @@ Is the difference in proportions of Excellent homes in Albemarle and Western Alb
 ```{r}
 xtabs(~ condition + hsdistrict, data = d) |>
   proportions(margin = 2) |>
-  round(2)
+  round(3)
 ```
 
 To compare two proportions we can use the `prop.test()` function. We need the number of homes that rated "Excellent" and the total number of homes. The `addmargins()` function gives us marginal totals (ie, row sums and column sums)
@@ -1082,14 +1171,13 @@ xtabs(~ condition + hsdistrict, data = d) %>%
   addmargins()
 ```
 
-
-
+We can run the hypothesis test using `prop.test()`. The first argument is number of homes in Excellent condition for Albemarle and Western Albemarle, respectively. The second argument is the total number of homes in each high school district.
 
 ```{r}
 prop.test(x = c(189, 239), n = c(12714, 9421))
 ```
 
-Statistical it seems significant with such a small p-value, but practically speaking the difference doesn't seem that dramatic.
+Statistically it seems significant with such a small p-value, but practically speaking the difference doesn't seem that dramatic. Big sample sizes can lead to "significant" p-values for very small differences.
 
 ### two sample t-test
 
@@ -1102,7 +1190,7 @@ t.test(totalvalue ~ fp, data = d)
 
 A small p-value provides evidence against the null of no difference, but does not tell us about the difference. Instead look at 95% confidence interval on the difference.
 
-The formal null hypothesis of a two-sample t-test is that both means came from the same normal distribution. 
+The formal null hypothesis of a two-sample t-test is that both samples came from the same normal distribution. 
 
 Maybe we should look at the distribution of totalvalue by fp.
 
@@ -1132,7 +1220,7 @@ tout
 
 We get the same basic result as far as the hypothesis test goes, but the estimated means and confidence interval are on the log scale.
 
-We can use the `exp()` function to undo the log transformation and see the expected mean values, ie the geometric means.
+We can use the `exp()` function to undo the log transformation (ie, take the anti-log) and see the expected mean values, aka the geometric means.
 
 ```{r}
 exp(tout$estimate)
@@ -1163,10 +1251,13 @@ is about [0.55, 0.57]
 exp(12.53444)/exp(13.10572)
 ```
 
+Again this demonstrates how a log-transformation results in an analysis of relative differences instead of absolute differences. 
+
 ### Wilcoxon Rank Sum test (aka Mann-Whitney)
 
-Another approach to comparing two groups that appear to have highly non-normal distributions is a non-parametric test that makes no assumptions about the distributions. This compares the _ranks_ of the data instead of the values
-themselves. We can do this with the `wilcox.test()` functioin. This takes a second!
+Instead of a log transformation we might have considered a non-parametric test, such as the _Wilcoxon Rank Sum test_. Whereas the formal null hypothesis of a two-sample t-test is that both samples came from the same normal distribution, the formal null of the Wilcoxon is that both samples came from the same distribution. No particular distribution is assumed. 
+
+This Wilcoxon Rank Sum test compares the _ranks_ of the data instead of the values themselves. We can do this with the `wilcox.test()` function. This takes a second!
 
 ```{r}
 wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
@@ -1174,6 +1265,7 @@ wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
 
 The "difference in location" estimates the median of the difference between a sample from homes with fireplaces and a sample from homes without fireplaces.
 
+Again, given how much data we have and how big the difference is between mean totalvalues for homes without and with fireplaces, the p-value of whatever test we choose seems to be a formality not terribly informative.
 
 ## CODE ALONG 4
 
@@ -1217,7 +1309,7 @@ We can attempt to model the totalvalue of a home using finsqft. In other words, 
 
 ### MODEL 1: simple linear model (one predictor)
 
-model totalvalue as a function of finsqft using the `lm()` function with syntax `totalvalue ~ finsqft`, and save to an object called "m1"
+Model totalvalue as a function of finsqft using the `lm()` function with syntax `totalvalue ~ finsqft`, and save to an object called "m1"
 
 ```{r}
 m1 <- lm(totalvalue ~ finsqft, data = d)
@@ -1240,7 +1332,7 @@ totalvalue = -164163.6587 + 314.6012*finsqft + ERROR
 ```
 where ERROR is a random draw from a Normal dist with mean = 0 and sd = 259300. Predicted totalvalue using the model is expected to be off by about \$259,300.
 
-Interpretation:
+_Interpretation:_
 Each additional finsqft adds about \$314 to value of home. This is an _absolute_ effect. Whether you have 1500 finsqft or 2500 finsqft, we can expect each additional finsqft to add about \$314 to the totalvalue.
 
 The `confint()` function reports 95% confidence intervals on the model coefficients.
@@ -1249,9 +1341,11 @@ The `confint()` function reports 95% confidence intervals on the model coefficie
 confint(m1)
 ```
 
+Each additional finsqft adds about 311-317 to the value of home.
+
 Let's use our model to make a prediction.
 
-What is the expected _mean value_ of homes with 2500 finsqft?
+What is the expected _mean value_ of homes with 2500 finsqft and the associated 95% confidence interval? Use `interval = "confidence"` since we're interested in the expected mean.
 
 ```{r}
 predict(m1, newdata = data.frame(finsqft = 2500), 
@@ -1259,12 +1353,14 @@ predict(m1, newdata = data.frame(finsqft = 2500),
 ```
 
 
-What is the expected _value of a single home_ with 2500 finsqft?
+What is the expected _value of a single home_ with 2500 finsqft and the associated 95% confidence interval? Use `interval = "prediction"` since we're interested in a predicted value.
 
 ```{r}
 predict(m1, newdata = data.frame(finsqft = 2500), 
         interval = "prediction")
 ```
+
+Notice how much wider this confidence interval is. That's because we're more uncertain about predicting a specific value than predicting a mean.
 
 But is this a good model? Should we trust these predictions?
 
@@ -1301,7 +1397,7 @@ We can get a better sense of the finsqft coefficient by multiplying by 100.
 coef(m2)["finsqft"] * 100
 ```
 
-Every additional 100 finsqft adds about 5% to totalvalue of home. This is a _relative_ effect. The 5% change is constant, but relative to the current totalvalue.
+Every additional 100 finsqft adds about 4.8% to totalvalue of home. This is a _relative_ effect. The 4.8% change is constant, but relative to the current totalvalue.
 
 Is this a good model? The residual vs fitted plot is a good first check.
 
@@ -1316,7 +1412,7 @@ Verdict: Now predicted values seem worse for smaller predicted values.
 
 In the previous two models we assumed the effect of finsqft was _linear_ (ie, it had a constant slope). Going from 1500 - 1600 finsqft has the same effect on totalvalue as going from 2500 - 2600 finsqft.
 
-It may be more realistic to assume a _non-linear_ effect. This is, an effect that is not constant. Maybe adding more finsqft to a home has a more dramatic impact on totalvalue when the home has around 1500 finsqft verus a home that is 3500 finsqft.
+It may be more realistic to assume a _non-linear_ effect. This is, an effect that is not constant. Maybe adding more finsqft to a home has a more dramatic impact on totalvalue when the home has around 1500 finsqft versus a home that is 3500 finsqft.
 
 We can model non-linear effects using _natural splines_. The {splines} package that comes with R makes this relatively easy to implement. Splines are more sophisticated and better behaved than polynomials.
 
@@ -1336,31 +1432,28 @@ plot(m3, which = 1)
 
 Verdict: This seems like an improvement on model 2
 
-Let's visualize and use the model
+Let's visualize and use the model. We use the `ggpredict()` function from the {ggeffects} package to create predictions at various finsqft values and then use the {ggeffects} `plot()` method to visualize.
 
 ```{r}
 ggpredict(m3, terms = "finsqft") %>% 
   plot()
 ```
 
-
-`dot.alpha = 0.1` changes transparency of dots
+We can plot this line with the raw data by adding `add.data = TRUE` to `plot()`.The `dot.alpha = 0.1` argument changes the transparency of the dots
 
 ```{r}
 ggpredict(m3, terms = "finsqft") %>% 
   plot(add.data = TRUE, dot.alpha = 0.1)
-
 ```
 
 
-Use predict() to make model predictions; need to exponentiate
+Use `predict()` to make model predictions; need to exponentiate to get predicted value on original scale.
 
 ```{r}
 predict(m3, newdata = data.frame(finsqft = 2500)) %>% exp()
-
 ```
 
-expected mean value of homes with 2500 finsqft
+Expected mean value of homes with 2500 finsqft
 
 ```{r}
 predict(m3, newdata = data.frame(finsqft = 2500), 
@@ -1368,7 +1461,7 @@ predict(m3, newdata = data.frame(finsqft = 2500),
 
 ```
 
-expected value of a home with 2500 finsqft
+Expected value of a home with 2500 finsqft
 
 ```{r}
 predict(m3, newdata = data.frame(finsqft = 2500), 
@@ -1380,15 +1473,14 @@ predict(m3, newdata = data.frame(finsqft = 2500),
 
 ```{r}
 ggpredict(m3, terms = "finsqft[1500:3000 by=500]") 
-
 ```
 
 
+### MODEL 4: three predictors
+
 Let's build a more complex model with multiple predictors, including finsqft, cooling, and fullbath.
 
-Notice we allow finsqft to interact with cooling;
-
-This says the association between totalvalue and finsqft depends on cooling.
+Notice we allow finsqft to interact with cooling. We define an interaction with a colon `:`. This says the association between totalvalue and finsqft depends on cooling.
 
 ```{r}
 m4 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) + cooling + 
@@ -1406,20 +1498,20 @@ anova(m4)
 ```
 
 
-The first line is a hypothesis test comparing a model with no predictors (just the overall mean) to a model with ns(finsqft, df = 2). The null is no difference between the models. This is soundly rejected.
+The first line is a hypothesis test comparing a model with no predictors (just the overall mean) to a model with `ns(finsqft, df = 2)`. The null is no difference between the models. This is soundly rejected.
 
-The second line is a hypothesis test comparing a model with ns(finsqft, df = 2) to a model with ns(finsqft, df = 2) and cooling. The null is no difference between models. This is also soundly rejected. And so on down the table.
+The second line is a hypothesis test comparing a model with `ns(finsqft, df = 2)` to a model with `ns(finsqft, df = 2)` and `cooling`. The null is no difference between models. This is also soundly rejected. And so on down the table.
 
 The last line tests whether the interaction should be included. Based on the p-value it seems warranted.
 
-This seems like an OK model, at least for most homes
+This seems like an OK model, at least for most homes. The residual versus fitted value plot seems reasonable.
 
 ```{r}
 plot(m4, which = 1)
 ```
 
 
-Visualize model 
+Let's visualize the interaction in the model using effect plots. We can do that with `ggpredict()` by specifying `terms = c("finsqft", "cooling")`.
 
 The interaction appears to happen after 5000 finsqft. But the thick confidence ribbon indicates there are few (if any) homes that big without cooling.
 
@@ -1429,7 +1521,7 @@ ggpredict(m4, terms = c("finsqft", "cooling")) %>%
 ```
 
 
-The "significant" interaction doesn't seem that interesting when zoomed in on a reasonable range of finsqft
+The "significant" interaction doesn't seem that interesting when zoomed in on a reasonable range of finsqft. The syntax `finsqft[1000:5000]` only works for functions in the {ggeffects} package.
 
 ```{r}
 ggpredict(m4, terms = c("finsqft[1000:5000]", "cooling")) %>% 
@@ -1437,7 +1529,7 @@ ggpredict(m4, terms = c("finsqft[1000:5000]", "cooling")) %>%
 ```
 
 
-View the effect of fullbaths from 1 - 5
+We can view the effect of fullbaths from 1 - 5.
 
 
 ```{r}
@@ -1498,9 +1590,9 @@ ggpredict(m7, terms = "hsdistrict") %>%
 
 There are many big books on linear modeling. This was not comprehensive!
 
-# CODE ALONG 5 ------------------------------------------------------------
+## CODE ALONG 5 
 
-(1) Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using lm(). Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
+(1) Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
 
 ```{r}
 mod1 <- lm(log(totalvalue) ~ finsqft + hsdistrict + finsqft:hsdistrict, data = d)
@@ -1512,7 +1604,7 @@ ggpredict(mod1, terms = c("finsqft[1000:4000 by = 200]", "hsdistrict")) %>%
 
 
 
-(2) Model remodel as a function of hsdistrict using glm(). Name the model mod2. In other words, model the probability a home has been remodeled based on the high school district it is located in. Visualize the model.
+(2) Model "remodel" as a function of hsdistrict using `glm()`. Name the model mod2. In other words, model the probability a home has been remodeled based on the high school district it is located in. Visualize the model.
 
 ```{r}
 mod2 <- glm(remodel ~ hsdistrict, data = d, family = binomial)
