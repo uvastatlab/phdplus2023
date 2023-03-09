@@ -152,7 +152,7 @@ When data are *symmetric*, the mean and median are close.
 When data are *skewed*, the median may be a better measure of center or typical value.
 
 ::: callout-tip
-In practice you should *examine both* if planning to present a summary of data.
+You can examine and present both means and medians. You don't have to pick one.
 :::
 
 ::: callout-important
@@ -208,6 +208,9 @@ IQR(d$totalvalue)
 
 As summaries of data, they can be confusing if your audience is not familiar with the concept of spread.
 
+::: callout-tip
+Data with no variability has a standard deviation/IQR of 0.
+:::
 
 ## Percentiles/Quantiles/Quartiles
 
@@ -406,8 +409,6 @@ Let's go to R.
 
 Painting 'Zebra Stripes' on Cows Wards Off Biting Flies [source](https://www.realclearscience.com/quick_and_clear_science/2019/10/07/painting_zebra_stripes_on_cows_wards_off_biting_flies.html)
 
-What does "p < 0.0001" mean?
-
 ![](../images/zebra_cow.jpg){fig-alt="cow painted like zebra." fig-align="right"}
 
 ## Hypothesis testing and p-values
@@ -455,8 +456,67 @@ See The American Statistical Association's [special issue](https://www.tandfonli
 P-values should not be revered as the final word in any analysis. 
 ::: 
 
-Let's go to R.
 
+## The Frequentist view
+
+Hypothesis testing, p-values, and confidence intervals assume there is a _fixed but unknown true value_ we're trying to estimate. 
+
+This is often called the **Frequentist** philosophy because p-values and confidence intervals summarize expected behavior in the _long run_.
+
+**Example**: there is a true mean weight of student backpacks at UVA. Our sample and confidence interval is our attempt to estimate the range of the true mean. Repeated samples and confidence intervals will capture true mean 95% of the time.
+
+**Example**: If painting cows like zebras has no effect on number of fly bites, we would expect to see the type of data we collected, or more extreme data, 0.0001 of the time.
+
+## The Bayesian view
+
+Another philosophical approach says forget estimating a value. Instead use expertise and common sense to hypothesize a _probability distribution_ for a value of interest.
+
+We then collect data and update our _prior_ distribution to create a _posterior_ distribution.
+
+We then use our posterior distribution to summarize the value of interest.
+
+This is called the **Bayesian** philosophy, after a Presbyterian minister named Thomas Bayes.
+
+## A quick Bayesian example
+
+Perhaps we think the average backpack weighs around 18 lbs. A possible _prior distribution_ might be a Normal distribution with mean 18 and standard deviation of 5. (Fig 1)
+
+After observing our data we use _Bayes' theorem_ to update our prior distribution to get a _posterior distribution_. (Fig 2)
+
+We use our posterior distribution to calculate a _credible interval_. There's about 74% probability that the mean backpack weight is between 15.5 and 16.5 lbs. (Fig 3) 
+
+```{r echo=FALSE}
+#| label: fig-charts
+#| fig-subcap: 
+#|   - "Prior Distribution"
+#|   - "Posterior Distribution"
+#|   - "Credible Interval"
+#| layout-ncol: 3
+bm1 <- readRDS("../data/backpacks.rds")
+
+# Fig 1
+curve(dnorm(x, mean = 18, sd = 5), from = 3, to = 33, 
+      ylab = "", xlab = "possible means")
+# Fig 2
+bm1.df <- as.data.frame(bm1)
+plot(density(bm1.df$`(Intercept)`), ylab = "", main = "",
+     xlab = "possible means", xlim = c(3,33))
+# Fig 3
+plot(density(bm1.df$`(Intercept)`), main = "", xlab = "possible means")
+abline(v = 15.5, lty=2)
+abline(v = 16.5, lty=2)
+# text(x = 16.5, y = 0.7, labels = "P(15.5 < m < 16.5) = 0.74", pos = 4)
+
+```
+
+
+## The truth about statistics
+
+> Students are frequently left with the impression that statistics is a monolith, firmly rooted in mathematics and thus somehow pure — while in truth the subject is highly contentious and as closely aligned to philosophy as it is to math.
+
+Darren Dahly, [Statistical Reform](https://statsepi.substack.com/p/statistical-reform)
+
+Let's go to R.
 
 ## Is education risky?
 
@@ -575,6 +635,8 @@ Many hypothesis tests are special cases of a linear model.
 - ANCOVA: linear model with a numeric predictor and categorical predictor
 
 More information: [Common statistical tests are linear models (or: how to teach stats)](https://lindeloev.github.io/tests-as-linear/)
+
+And of course all of this can be analyzed using Bayesian statistics. 
 
 Let's go to R!
 

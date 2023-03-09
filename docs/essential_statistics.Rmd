@@ -27,7 +27,7 @@ Before we get started, I want to drop the 5 home records that are not assigned t
 
 ```{r}
 d %>% 
-  select(hsdistrict, msdistrict, esdistrict) %>% 
+  select(ends_with("district")) %>% 
   map(table)
 ```
 
@@ -36,7 +36,7 @@ It turns out these 5 homes are not assigned to any school district.
 ```{r}
 d %>% 
   filter(hsdistrict == "Unassigned") %>% 
-  select(hsdistrict, msdistrict, esdistrict) 
+  select(ends_with("district")) 
   
 ```
 
@@ -46,7 +46,7 @@ I don't want to just drop the records. I also want to drop the Unassigned _level
 ```{r}
 d %>% 
   filter(hsdistrict != "Unassigned") %>% 
-  select(hsdistrict, msdistrict, esdistrict) %>% 
+  select(ends_with("district")) %>% 
   map(table)
 
 ```
@@ -56,9 +56,14 @@ We can use the `droplevels()` function to drop levels with 0 counts.
 ```{r}
 d <- d %>% 
   filter(hsdistrict != "Unassigned") %>%
-  mutate(hsdistrict = droplevels(hsdistrict),
-         msdistrict = droplevels(msdistrict),
-         esdistrict = droplevels(esdistrict))
+  mutate(across(ends_with("district"), droplevels))
+
+# a little more verbose but easier to read
+# d <- d %>% 
+#   filter(hsdistrict != "Unassigned") %>%
+#   mutate(hsdistrict = droplevels(hsdistrict),
+#          msdistrict = droplevels(msdistrict),
+#          esdistrict = droplevels(esdistrict))
 ```
 
 Now our tables show no level for "Unassigned"
@@ -85,7 +90,7 @@ table(d$hsdistrict) %>% proportions()
 ```
 
 
-We can also use `xtabs()` function that allows us to use R's formula syntax. The synatx `~ hsdistrict` means count up by hsdistrict. Notice it includes the name of the variable in the output.
+We can also use `xtabs()` function that allows us to use R's formula syntax. The syntax `~ hsdistrict` means count up by hsdistrict. Notice it includes the name of the variable in the output.
 
 ```{r}
 xtabs( ~ hsdistrict, data = d)
@@ -229,7 +234,7 @@ The ratio of proportions is 1.25. Albemarle has about 25% more homes with firepl
 
 We can also go beyond two dimensions. This is sometimes called "stratifying" on additional variables.
 
-Cross-tabulation of hsdistrict and fp (fireplace status) _stratified_ by cooling status: `~ hsdistrict + fp + cooling` (The last variable will be the stratifying variable, or 3rd dimension)
+Cross-tabulation of hsdistrict and fp (fireplace status) _stratified by cooling status_: `~ hsdistrict + fp + cooling` (The last variable will be the stratifying variable, or 3rd dimension)
 
 ```{r}
 tab2 <- xtabs(~ hsdistrict + fp + cooling, data = d)
@@ -328,7 +333,7 @@ tab2_p["Monticello", "0", "Central Air"] -
 
 Of all homes with central air, the proportion of homes without a fireplace in Monticello is 0.13 higher than the proportion of homes with a fireplace in Albemarle.
 
-Relative difference
+Relative difference:
 
 ```{r}
 tab2_p["Monticello", "0", "Central Air"]/
@@ -336,7 +341,7 @@ tab2_p["Monticello", "0", "Central Air"]/
 ```
 
 
-Of all homes with central air, Monticello has about 68% more homes without a fireplace than Albemarle
+Of all homes with central air, Monticello has about 68% more homes without a fireplace than Albemarle.
 
 Can also calculate counts and proportions based on a condition.
 
@@ -401,7 +406,7 @@ xtabs(~ (lotsize > 1) + hsdistrict, data = d) %>%
 
 ## Summarizing numeric data
 
-`summary()` and `hist()` make a powerful combination for summarizing one variable. Let's investidate the lotsize variable.
+`summary()` and `hist()` make a powerful combination for summarizing one variable. Let's investigate the lotsize variable.
 
 ```{r}
 summary(d$lotsize)
