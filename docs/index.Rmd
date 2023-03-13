@@ -54,6 +54,8 @@ Instructor: Jacob Goldstein-Greenwood
 
 Exploring data with plots allows us to visualize relationships, spot unusual observations, and find unexpected patterns. In this workshop, we’ll introduce the ggplot2 R package—a powerful set of tools for creating expressive, rich visualizations. With its consistent syntax and layered approach to making graphics, ggplot2 has revolutionized data visualization. What previously would have required tedious programming can now be accomplished in a few lines of ggplot2 code. This session will introduce the logic behind ggplot2, how to use ggplot2 to explore your data, and how to customize and polish ggplot2 graphs.
 
+[Workshop Materials](https://github.com/uvastatlab/phdplus2023/raw/main/docs/03_data_viz.zip)
+
 <br>
 
 #### **Data Wrangling**
