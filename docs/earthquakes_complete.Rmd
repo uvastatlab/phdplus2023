@@ -1,7 +1,7 @@
 ---
 title: "PhD Plus Final Project: Earthquake analysis"
 author: "Clay Ford"
-date: "March 16, 2022"
+date: "April 5, 2023"
 output: html_notebook
 editor_options: 
   chunk_output_type: inline
@@ -17,7 +17,7 @@ Complete all tasks with working R code.
 
 Reminder: Add a new R code chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl + Alt + I* (Win/Linux) or *Cmd + Option + I* (Mac). 
 
-We will all work together on this, pausing to work on each task, and then coming together to discuss how to accomplish the task. 
+We will all work together on this.
 
 ## About the data
 
@@ -46,7 +46,7 @@ URL <- "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv"
 d <- read_csv(URL)
 ```
 
-BACKUP PLAN: If for some reason the USGS site is down, please use this URL: https://github.com/uvastatlab/phdplus2022/raw/main/data/all_month.csv 
+BACKUP PLAN: If for some reason the USGS site is down, please use this URL: https://github.com/uvastatlab/phdplus2023/raw/main/data/all_month.csv 
 
 ## 2. Take a quick glimpse of the data 
 
@@ -505,13 +505,18 @@ d %>%
 
 ## 16. Seismic events in the United States by State
 
-What if we wanted a breakdown of seismic events by US state? It would help to have a column that identifies state. Below we filter by US and then use our regular expression from the last task with the stringr function `str_extract()`. We also rename states with "CA" to say "California" using the `if_else` function. Finally we save to a new data frame called us.
+What if we wanted a breakdown of seismic events by US state? It would help to have a column that identifies state. Below we filter by US and then use our regular expression from the last task with the stringr function `str_extract()`. We also rename states with "CA" to say "California" using the `if_else` function. Finally we save to a new data frame called "us".
 
 ```{r}
 us <- d %>% 
   filter(US) %>% 
   mutate(state = str_extract(place, sre),
          state = if_else(state == "CA", "California", state))
+
+# view a sample
+us %>% 
+  select(place, state, US) %>% 
+  sample_n(6)
 ```
 
 With our new data frame created, please complete the following tasks.
