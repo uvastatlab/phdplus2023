@@ -483,7 +483,7 @@ Perhaps we think the average backpack weighs around 18 lbs. A possible _prior di
 
 After observing our data we use _Bayes' theorem_ to update our prior distribution to get a _posterior distribution_. (Fig 2)
 
-We use our posterior distribution to calculate a _credible interval_. There's about 74% probability that the mean backpack weight is between 15.5 and 16.5 lbs. (Fig 3) 
+We use our posterior distribution to calculate a _credible interval_. There's about 0.74 probability that the mean backpack weight is between 15.5 and 16.5 lbs. (Fig 3) 
 
 ```{r echo=FALSE}
 #| label: fig-charts

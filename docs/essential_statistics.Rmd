@@ -21,6 +21,7 @@ Read in the homes data from GitHub. The data is saved as an RDS file, which is t
 ```{r}
 URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/homes.rds"
 d <- readRDS(url(URL))
+rm(URL)
 ```
 
 
@@ -117,11 +118,11 @@ tab["Albemarle", ]
 ```
 
 ```{r}
-tab[, "1"]
+tab[, "Yes"]
 ```
 
 ```{r}
-tab["Albemarle", "1"]
+tab["Albemarle", "Yes"]
 ```
 
 
@@ -155,15 +156,15 @@ tab_p
 What's the difference in proportion of homes with a fireplace between Albemarle and Monticello? 
 
 ```{r}
-c(tab_p["Albemarle", "1"],
-  tab_p["Monticello", "1"])
+c(tab_p["Albemarle", "Yes"],
+  tab_p["Monticello", "Yes"])
 ```
 
 
 Absolute difference = 0.16 or 16%
 
 ```{r}
-tab_p["Albemarle", "1"] - tab_p["Monticello", "1"]
+tab_p["Albemarle", "Yes"] - tab_p["Monticello", "Yes"]
 ```
 
 The difference in proportions is 0.16. The proportion of homes with fireplaces
@@ -173,7 +174,7 @@ Monticello.
 Relative difference = 1.25 or 25% 
 
 ```{r}
-tab_p["Albemarle", "1"]/tab_p["Monticello", "1"]
+tab_p["Albemarle", "Yes"]/tab_p["Monticello", "Yes"]
 ```
 
 
@@ -228,8 +229,8 @@ tab2["Monticello", , , drop = FALSE]
 ```
 
 ```{r}
-# all rows, fp = "1", all strata 
-tab2[, "1", ,drop = FALSE]
+# all rows, fp = "Yes", all strata 
+tab2[, "Yes", ,drop = FALSE]
 ```
 
 
@@ -275,8 +276,8 @@ tab2_p <- tab2 %>%
 Absolute difference:
 
 ```{r}
-tab2_p["Monticello", "0", "Central Air"] - 
-  tab2_p["Albemarle", "0", "Central Air"]
+tab2_p["Monticello", "No", "Central Air"] - 
+  tab2_p["Albemarle", "No", "Central Air"]
 ```
 
 
@@ -285,8 +286,8 @@ Of all homes with central air, the proportion of homes without a fireplace in Mo
 Relative difference:
 
 ```{r}
-tab2_p["Monticello", "0", "Central Air"]/
-  tab2_p["Albemarle", "0", "Central Air"]
+tab2_p["Monticello", "No", "Central Air"]/
+  tab2_p["Albemarle", "No", "Central Air"]
 ```
 
 
@@ -371,6 +372,14 @@ We can use the `breaks` argument to increase/decrease number of bins.
 hist(d$lotsize, breaks = 100)
 ```
 
+In this case we may want to look at lotsizes less than 3 acres since the 3rd quartile is about 2.6. ggplot makes the pretty easy via the `xlim()` function
+
+```{r}
+ggplot(d) +
+  aes(x = lotsize) +
+  geom_histogram() +
+  xlim(c(0, 3))
+```
 
 The standard deviation and IQR are wildly different. If we had to pick one to summarize the spread, we would probably choose IQR since the data is not symmetric.
 
@@ -519,11 +528,6 @@ For `tapply()`, wrap groups in `list()`. The result is a matrix.
 tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
 ```
 
-Incidentally, the {car} package provides the function `Tapply()` that allows one to use a formula interface as they would with `aggregate()`
-
-```{r}
-car::Tapply(totalvalue ~ + hsdistrict + cooling, data = d, mean)
-```
 
 A matrix is desirable for _reporting_.
 A data frame is desirable for _plotting_. 
@@ -805,6 +809,13 @@ The standard deviation of our 10,000 sample means is the estimated standard erro
 sd(means) # standard error based on 10,000 means
 ```
 
+Due to the Central Limit Theorem, the distribution of the sample means is fairly symmetric, so the standard deviation is a good measure of spread.
+
+```{r}
+hist(means)
+```
+
+
 We can add and subtract 2 standard errors from mean to form an approximate 95% confidence interval
 
 ```{r}
@@ -835,11 +846,11 @@ NOTE: To reduce the standard error by 1/2, we need 4 times the sample size. So d
 
 ### Uncertainty about a proportion
 
-Let's take a random sample of 50 homes' fireplace status. The fp variable is a sequence of zeroes and ones, where a one means a home has at least one fireplace. Taking the mean of zeroes and ones returns the proportion of ones. We use `na.rm = TRUE` in out `mean()` function because some homes are missing this information in our data.
+Let's take a random sample of 50 homes' fireplace status. The fp variable is a categorical variable with levels "Yes" and "No". Below we form a vector of TRUE/FALSE and take the mean of TRUE, which returns the proportion of TRUE. We use `na.rm = TRUE` in the `mean()` function because some homes are missing this information in our data.
 
 ```{r}
 samp2 <- sample(d$fp, 50)
-mean(samp2, na.rm = TRUE)
+mean(samp2 == "Yes", na.rm = TRUE)
 ```
 
 We should all get a different answer due to the sampling variability.
@@ -849,7 +860,7 @@ Let's repeat that code 10,000 times.
 ```{r}
 props <- replicate(n = 10000, expr = {
   samp2 <- sample(d$fp, 50)
-  mean(samp2, na.rm = TRUE)
+  mean(samp2 == "Yes", na.rm = TRUE)
 })
 sd(props) # standard error based on 10,000 means
 ```
@@ -858,20 +869,20 @@ We can add and subtract 2 standard errors from the proportion to form an approxi
 
 ```{r}
 SE_p <- sd(props)
-mean(samp2, na.rm = TRUE) + c(-1, 1)*2*SE_p
+mean(samp2 == "Yes", na.rm = TRUE) + c(-1, 1)*2*SE_p
 ```
 
 The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would take our single sample and estimate a confidence interval using a math formula courtesy of a function such as `prop.test()`. The first argument `x` in `prop.test()` is the number of successes (or homes with fireplaces.) The second argument `n` is the size of our sample.
 
 ```{r}
-prop.test(x = sum(samp2, na.rm = TRUE), n = 50)
-prop.test(x = sum(samp2, na.rm = TRUE), n = 50)$conf.int
+prop.test(x = sum(samp2 == "Yes", na.rm = TRUE), n = 50)
+prop.test(x = sum(samp2 == "Yes", na.rm = TRUE), n = 50)$conf.int
 ```
 
 The {binom} package provides the `binom.confint()` function that returns the proportion and the lower/upper limits of 11 different intervals (!). Different intervals may be preferred when your estimated proportion is near 0 or 1 and/or your sample size is small.
 
 ```{r}
-binom::binom.confint(x = sum(samp2, na.rm = TRUE), n = 50)
+binom::binom.confint(x = sum(samp2 == "Yes", na.rm = TRUE), n = 50)
 ```
 
 
@@ -939,7 +950,7 @@ Next we take a sample of size 50 and check if the 95% confidence interval contai
 
 ```{r}
 samp <- sample(d$totalvalue, 50)
-tout <- t.test(samp)
+tout <- t.test(samp, conf.level = 0.95)
 tout$conf.int[1] < true_mean & tout$conf.int[2] > true_mean
 ```
 
@@ -948,7 +959,7 @@ Now we repeat the process 1000 times and check the proportion of times our 95% C
 ```{r}
 ci_test <- replicate(n = 1000, expr = {
   samp <- sample(d$totalvalue, 50, replace = TRUE)
-  tout <- t.test(samp)
+  tout <- t.test(samp, conf.level = 0.95)
   tout$conf.int[1] < true_mean & tout$conf.int[2] > true_mean
 })
 mean(ci_test)
@@ -963,7 +974,7 @@ Let's try log-transforming our sample.
 true_log_mean <- mean(log(d$totalvalue))
 ci_test_log <- replicate(n = 1000, expr = {
   samp <- sample(d$totalvalue, 50, replace = TRUE)
-  tout <- t.test(log(samp))
+  tout <- t.test(log(samp), conf.level = 0.95)
   tout$conf.int[1] < true_log_mean & tout$conf.int[2] > true_log_mean
 })
 mean(ci_test_log)
@@ -1150,7 +1161,7 @@ Maybe we should look at the distribution of totalvalue by fp.
 
 ```{r}
 ggplot(filter(d, !is.na(fp))) +
-  aes(x = totalvalue, fill = factor(fp)) +
+  aes(x = totalvalue, fill = fp) +
   geom_density(alpha = 1/3)
 ```
 
@@ -1159,7 +1170,7 @@ Ideally we would like to see the distributions of each group looking roughly sym
 
 ```{r}
 ggplot(filter(d, !is.na(fp))) +
-  aes(x = log(totalvalue), fill = factor(fp)) +
+  aes(x = log(totalvalue), fill = fp) +
   geom_density(alpha = 1/3)
 
 ```
@@ -1187,16 +1198,19 @@ The confidence limits for the difference between means cannot be transformed bac
 tout$conf.int
 ```
 
-Instead, if we exponentiate, we get a 95% CI for the _ratio of the geometric means_. The geometric mean of homes without fireplaces is about 44% - 43% lower than homes with fireplaces. (ie, \$277,741 is about 43-44% lower than \$491,747)
+Instead, if we exponentiate, we get a 95% CI for the _ratio of the geometric means_. 
 
 ```{r}
 exp(tout$conf.int)
 ```
 
+Subtract from 1 to make it a little more interpretable.
 
 ```{r}
 1 - exp(tout$conf.int) # about 44% - 43% lower
 ```
+
+The geometric mean of homes without fireplaces is about 44% - 43% lower than homes with fireplaces. (ie, \$277,741 is about 43-44% lower than \$491,747)
 
 We can calculate the ratio of the geometric means. It's about 0.56. The 95% CI
 is about [0.55, 0.57]
@@ -1217,7 +1231,7 @@ This Wilcoxon Rank Sum test compares the _ranks_ of the data instead of the valu
 wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
 ```
 
-The "difference in location" estimates the median of the difference between a sample from homes with fireplaces and a sample from homes without fireplaces.
+The "difference in location" estimates _the median of the difference between a sample from homes with fireplaces and a sample from homes without fireplaces_.
 
 Again, given how much data we have and how big the difference is between mean totalvalues for homes without and with fireplaces, the p-value of whatever test we choose seems to be a formality not terribly informative.
 
@@ -1334,6 +1348,21 @@ The dotted line is 0. Values above the line have higher totalvalues than the mod
 
 Verdict: Not great, but perhaps somewhat useful. Predicted values seem to get worse as the predicted values get bigger. 
 
+
+#### SUMMARY OVERVIEW
+
+```{r}
+summary(m1)
+```
+
+
+- Residuals section: quick assessment of residuals. Ideally 1Q/3Q and Min/Max will be roughly equivalent in absolute value.
+- Coefficients: lists the estimated coefficients along with hypothesis tests for the null hypothesis that each coefficient is 0. Est/SE = t-value. 
+- Residual standard error: estimate of the constant standard deviation of the normal distribution of the errors
+- degrees of freedom: sample size - number of coefficients
+- R-squared: proportion of variance explained
+- F-statistic: overall test that all coefficients (except intercept) are 0.
+
 ### MODEL 2: log transformed response
 
 When working with dollar amounts it is common to log transform the values. Dollar amounts, especially for things like properties and salaries, can be skewed. That's often because they scale multiplicatively as they get larger. (Salaries don't go up by $1000. They go up by 3%.)
@@ -1386,6 +1415,14 @@ plot(m3, which = 1)
 
 Verdict: This seems like an improvement on model 2
 
+One way to compare models is via information criteria such as AIC (Akaike information criterion). AIC is a statistic designed to help us choose a model with the best predictive power among a group of models. The value of  AIC doesn't really have any interpretation. It's meant to be compared to other AIC values. The lower the AIC the better.  "df" is short for "degrees of freedom" and is the number of parameters estimated in the model. This includes the residual standard error.
+
+```{r}
+AIC(m2, m3)
+```
+
+We can only compare models with the _same response_ fit to the same data. That's why we can't include the first model, m1. It was fit to the raw data. The next two models, m2 and m3, were fit to log-transformed data.
+
 Let's visualize and use the model. We use the `ggpredict()` function from the {ggeffects} package to create predictions at various finsqft values and then use the {ggeffects} `plot()` method to visualize.
 
 ```{r}
@@ -1407,7 +1444,7 @@ Use `predict()` to make model predictions; need to exponentiate to get predicted
 predict(m3, newdata = data.frame(finsqft = 2500)) %>% exp()
 ```
 
-Expected mean value of homes with 2500 finsqft
+Expected mean value of _homes_ with 2500 finsqft
 
 ```{r}
 predict(m3, newdata = data.frame(finsqft = 2500), 
@@ -1415,7 +1452,7 @@ predict(m3, newdata = data.frame(finsqft = 2500),
 
 ```
 
-Expected value of a home with 2500 finsqft
+Expected value of _a home_ with 2500 finsqft
 
 ```{r}
 predict(m3, newdata = data.frame(finsqft = 2500), 
@@ -1423,18 +1460,12 @@ predict(m3, newdata = data.frame(finsqft = 2500),
 
 ```
 
-`ggpredict()` makes it easy to get multiple predictions and 95% CIs. The CIs are for expected mean values.
-
-```{r}
-ggpredict(m3, terms = "finsqft[1500:3000 by=500]") 
-```
-
 
 ### MODEL 4: three predictors
 
 Let's build a more complex model with multiple predictors, including finsqft, cooling, and fullbath.
 
-Notice we allow finsqft to interact with cooling. We define an interaction with a colon `:`. This says the association between totalvalue and finsqft depends on cooling.
+Below we allow finsqft to _interact_ with cooling. We define an interaction with a colon `:`. This says the association between totalvalue and finsqft depends on cooling.
 
 ```{r}
 m4 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) + cooling + 
@@ -1445,7 +1476,7 @@ summary(m4)
 ```
 
 
-An Analysis of Variance Table can help us assess whether or not interactions are warranted. 
+An Analysis of Variance Table can help us assess whether or not interactions are warranted. This runs a series of hypothesis tests comparing progressively more complex models.
 
 ```{r}
 anova(m4)
@@ -1511,7 +1542,7 @@ ggpredict(m4, terms = "fullbath[1:5]",
 
 Many hypothesis tests are special cases of linear models
 
-ANOVA (one categorical predictor)
+### ANOVA (one categorical predictor)
 
 ```{r}
 m5 <- lm(totalvalue ~ hsdistrict, data = d)
@@ -1521,7 +1552,7 @@ ggpredict(m5, terms = "hsdistrict") %>% plot()
 ```
 
 
-t-test (one binary predictor)
+### t-test (one binary predictor)
 
 ```{r}
 m6 <- lm(log(totalvalue) ~ cooling, data = d)
@@ -1531,7 +1562,7 @@ ggpredict(m6, terms = "cooling") %>% plot()
 ```
 
 
-2-sample proportion test (logistic regression)
+### 2-sample proportion test (logistic regression)
 
 ```{r}
 m7 <- glm(fp ~ hsdistrict, data = d, family = binomial)
@@ -1549,7 +1580,8 @@ There are many big books on linear modeling. This was not comprehensive!
 (1) Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
 
 ```{r}
-mod1 <- lm(log(totalvalue) ~ finsqft + hsdistrict + finsqft:hsdistrict, data = d)
+mod1 <- lm(log(totalvalue) ~ finsqft + hsdistrict + finsqft:hsdistrict, 
+           data = d)
 anova(mod1)
 
 ggpredict(mod1, terms = c("finsqft[1000:4000 by = 200]", "hsdistrict")) %>% 
@@ -1569,7 +1601,7 @@ ggpredict(mod2, terms = "hsdistrict") %>% plot()
 ```
 
 
-
+We're done!
 
 
 ## Appendix: bootstrap CI coverage 
