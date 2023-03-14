@@ -19,59 +19,8 @@ library(ggeffects)
 Read in the homes data from GitHub. The data is saved as an RDS file, which is the format for saving R objects. We need to use the `readRDS()` to read in the file. Notice we have to assign the result a name. I chose "d" because it's easy to type. Since the RDS file is on GitHub and accessed through a URL, we need to use the `url()` function to open the connection.
 
 ```{r}
-URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/albemarle_homes_2023.rds"
+URL <- "https://github.com/uvastatlab/phdplus2023/raw/main/data/homes.rds"
 d <- readRDS(url(URL))
-```
-
-Before we get started, I want to drop the 5 home records that are not assigned to a school district. Below I select the three school district columns and apply the table function to those columns using the `map()` function which is from of the {purrr} package.
-
-```{r}
-d %>% 
-  select(ends_with("district")) %>% 
-  map(table)
-```
-
-It turns out these 5 homes are not assigned to any school district.
-
-```{r}
-d %>% 
-  filter(hsdistrict == "Unassigned") %>% 
-  select(ends_with("district")) 
-  
-```
-
-I don't want to just drop the records. I also want to drop the Unassigned _level_ so it doesn't continue to appear in our analysis as having 0 records. For example, notice how the `table()` function shows Unassigned as 0 even after the call to `filter()`.
-
-
-```{r}
-d %>% 
-  filter(hsdistrict != "Unassigned") %>% 
-  select(ends_with("district")) %>% 
-  map(table)
-
-```
-
-We can use the `droplevels()` function to drop levels with 0 counts.
-
-```{r}
-d <- d %>% 
-  filter(hsdistrict != "Unassigned") %>%
-  mutate(across(ends_with("district"), droplevels))
-
-# a little more verbose but easier to read
-# d <- d %>% 
-#   filter(hsdistrict != "Unassigned") %>%
-#   mutate(hsdistrict = droplevels(hsdistrict),
-#          msdistrict = droplevels(msdistrict),
-#          esdistrict = droplevels(esdistrict))
-```
-
-Now our tables show no level for "Unassigned"
-
-```{r}
-d %>% 
-  select(hsdistrict, msdistrict, esdistrict) %>% 
-  map(table)
 ```
 
 
