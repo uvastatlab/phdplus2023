@@ -29,6 +29,12 @@ The data has 22 variables which are documented on the following web page: <https
 
 Each row in the data represents one earthquake. The data is ordered by earthquake date in descending order, with the most recent earthquake first.
 
+## Code book
+
+```{r}
+knitr::kable(cb)
+```
+
 
 ## 1. Read in the data
 
@@ -71,11 +77,20 @@ table(d$type)
 ```
 
 
-## 3. Visualize the distribution of magnitude
+## 3. Summarize magnitude numerically and visually
 
 The "mag" variable measures the magnitude of an earthquake on the Richter scale. It is a logarithmic scale which means it's multiplicative. An earthquake of magnitude 3 is 10 times stronger than an earthquake of magnitude 2. An earthquake of magnitude 4 is 10 times stronger than an earthquake of magnitude 3. And so on. 
 
 Note: magnitude can sometimes be negative! https://www.usgs.gov/faqs/how-can-earthquake-have-negative-magnitude
+
+"An earthquake of negative magnitude is a very small earthquake that is not felt by humans."
+
+Summarize "mag"
+
+```{r}
+summary(d$mag)
+```
+
 
 Visualize the distribution of "mag". 
 
@@ -97,7 +112,7 @@ hist(d$mag)
 ```
 
 
-## 4. Visualize the relationship between depth and magnitude
+## 4. Summarize the relationship between depth and magnitude numerically and visually
 
 The "depth" variable measures the depth of an earthquake in kilometers. 
 
@@ -106,8 +121,16 @@ How is the depth of an earthquake associated with its magnitude ("mag")? Create 
 ```{r}
 ggplot(d) +
   aes(x = depth, y = mag) +
-  geom_point()
+  geom_point() +
+  geom_smooth()
 ```
+
+Correlation:
+
+```{r}
+cor(d$depth, d$mag, method = "spearman")
+```
+
 
 ## 5. Investigate the status of the seismic event
 
@@ -135,6 +158,13 @@ ggplot(d) +
   aes(x = depth, y = mag) +
   geom_point(alpha = 1/5) +
   facet_wrap(~status)
+```
+
+
+```{r}
+d %>% 
+  group_by(status) %>% 
+  summarise(cor = cor(depth, mag, method = "spearman"))
 ```
 
 
@@ -201,6 +231,12 @@ ggplot(d) +
 ggplot(d) +
   aes(x = type, y = mag) +
   geom_boxplot()
+```
+
+```{r}
+ggplot(d) +
+  aes(x = type, y = mag) +
+  geom_jitter(height = 0)
 ```
 
 
@@ -342,7 +378,7 @@ d %>%
 
 ## 12. Do seismic events in some locations tend to have larger magError?
 
-The "magError" column reports the uncertainty of the reported magnitude of an event. (ie, the estimated standard error of the magnitude.) A "magError" greater than 3 is considered large. Using our new "location" column, is there a location that seems to consistently have large "magErrors"? 
+The "magError" column reports the uncertainty of the reported magnitude of an event. (ie, the estimated standard error of the magnitude.) A "magError" greater than 3 is considered large. Using our new "location" column, is there a location that seems to consistently have large "magErrors" (greater than 3)? 
 
 ```{r}
 d %>% 
@@ -405,7 +441,7 @@ ggplot(d) +
 - What is the median elapsed time between seismic events? In other words, about how often is the USGS detecting seismic events on earth?
 
 ```{r}
-median(d$elapsed_time, na.rm = T)
+median(d$elapsed_time, na.rm = TRUE)
 ```
 
 
@@ -468,6 +504,13 @@ d %>%
 
 
 With our US column added, please complete the following tasks.
+
+- What proportion of all seismic events recorded by the USGS occurred in the United States?
+
+```{r}
+mean(d$US)
+```
+
 
 - Visualize the distribution of "mag" for those events that occurred in the US.
 
@@ -537,6 +580,21 @@ us %>%
   summarize(max = max(mag)) %>% 
   arrange(desc(max)) %>% 
   head(n = 5)
+```
+
+- Earthquakes occur rather frequently in Hawaii. What's the estimated mean magnitude of those events? Include a confidence interval on your estimate.
+
+```{r}
+Hmisc::smean.cl.normal(us$mag[us$state == "Hawaii"])
+```
+
+The tidyverse way requires the use of `pull()`
+
+```{r}
+us %>% 
+  filter(state == "Hawaii") %>% 
+  pull(mag) %>% 
+  Hmisc::smean.cl.normal()
 ```
 
 
