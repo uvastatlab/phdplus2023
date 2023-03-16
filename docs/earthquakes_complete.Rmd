@@ -29,12 +29,7 @@ The data has 22 variables which are documented on the following web page: <https
 
 Each row in the data represents one earthquake. The data is ordered by earthquake date in descending order, with the most recent earthquake first.
 
-## Code book
-
-```{r}
-knitr::kable(cb)
-```
-
+Abbreviate code book: 
 
 ## 1. Read in the data
 

@@ -1,6 +1,15 @@
-# USGS Earthquakes Code book
-# https://earthquake.usgs.gov/data/comcat/index.php#event-terms
+---
+title: "USGS Code Book"
+author: "Clay Ford"
+date: "2023-03-16"
+output: html_document
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE}
 library(readr)
 URL <- "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv"
 d <- read_csv(URL)
@@ -32,4 +41,11 @@ desc <- c(
  "Network that originally authored the reported magnitude for this event."
 )
 cb <- data.frame(variable = var, description = desc)
-saveRDS(cb, file = "data/codebook.rds")
+```
+
+Source: <https://earthquake.usgs.gov/data/comcat/index.php#event-terms>
+
+```{r echo=FALSE}
+knitr::kable(cb)
+```
+
