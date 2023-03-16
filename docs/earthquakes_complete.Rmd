@@ -21,15 +21,16 @@ We will all work together on this.
 
 ## About the data
 
-The following web page allows the public to download all earthquakes recorded by the US Geological Survey (USGS) in the past 30 days. 
+The following web page allows the public to download all earthquakes recorded by the US Geological Survey (USGS) in the past 30 days. Updated every minute.
 
 <https://earthquake.usgs.gov/earthquakes/feed/v1.0/csv.php>
 
-The data has 22 variables which are documented on the following web page: <https://earthquake.usgs.gov/data/comcat/index.php>
+The data has 22 variables which are documented on the following web page: <https://earthquake.usgs.gov/data/comcat/index.php#event-terms>
 
 Each row in the data represents one earthquake. The data is ordered by earthquake date in descending order, with the most recent earthquake first.
 
-Abbreviate code book: 
+Abbreviated code book: 
+<https://uvastatlab.github.io/phdplus2023/usgs_codebook.html>
 
 ## 1. Read in the data
 
@@ -74,31 +75,40 @@ table(d$type)
 
 ## 3. Summarize magnitude numerically and visually
 
-The "mag" variable measures the magnitude of an earthquake on the Richter scale. It is a logarithmic scale which means it's multiplicative. An earthquake of magnitude 3 is 10 times stronger than an earthquake of magnitude 2. An earthquake of magnitude 4 is 10 times stronger than an earthquake of magnitude 3. And so on. 
+The "mag" variable measures the magnitude of an earthquake on the Richter scale. It is a logarithmic scale which means it's multiplicative. An earthquake of magnitude 3 is about 10 times stronger than an earthquake of magnitude 2. An earthquake of magnitude 4 is about 10 times stronger than an earthquake of magnitude 3. And so on. 
 
 Note: magnitude can sometimes be negative! https://www.usgs.gov/faqs/how-can-earthquake-have-negative-magnitude
 
 "An earthquake of negative magnitude is a very small earthquake that is not felt by humans."
 
-Summarize "mag"
+- Summarize "mag" numerically
 
 ```{r}
 summary(d$mag)
 ```
 
+```{r}
+quantile(d$mag, probs = 1:9/10)
+```
 
-Visualize the distribution of "mag". 
+```{r}
+Hmisc::describe(d$mag)
+```
+
+
+- Summarize "mag" visually
 
 ```{r}
 ggplot(d) +
   aes(x = mag) +
-  geom_density()
+  geom_density() +
+  scale_x_continuous(breaks = seq(0, 7, 0.5))
 ```
 
 ```{r}
 ggplot(d) +
   aes(x = mag) +
-  geom_histogram()
+  geom_histogram(binwidth = 0.25)
 ```
 
 ```{r}
@@ -106,12 +116,21 @@ ggplot(d) +
 hist(d$mag)
 ```
 
+- What are the top 10 biggest earthquakes in our data?
+
+```{r}
+d %>% 
+  arrange(desc(mag)) %>% 
+  select(place, mag) %>% 
+  head(10)
+```
+
 
 ## 4. Summarize the relationship between depth and magnitude numerically and visually
 
-The "depth" variable measures the depth of an earthquake in kilometers. 
+The "depth" variable measures the depth of an earthquake in kilometers. How is the depth of an earthquake associated with its magnitude ("mag")? 
 
-How is the depth of an earthquake associated with its magnitude ("mag")? Create a visualization to investigate with "mag" on the y-axis. 
+- Create a visualization with "mag" on the y-axis. 
 
 ```{r}
 ggplot(d) +
@@ -119,6 +138,8 @@ ggplot(d) +
   geom_point() +
   geom_smooth()
 ```
+
+- Summarize the relationship numerically.
 
 Correlation:
 
@@ -142,6 +163,13 @@ table(d$status)
 ```{r}
 mean(d$status == "reviewed")
 ```
+
+- The magSource variable reports the network that originally authored the reported magnitude for this event. Create a cross tabulation between status and magSource. See this page for network definitions: <https://www.emsc-csem.org/Earthquake/contributors.php>
+
+```{r}
+xtabs(~ magSource + status, data = d)
+```
+
 
 
 ## 6. Visualize the relationship between depth and magnitude by status
@@ -216,14 +244,6 @@ How does the distribution of magnitude vary between seismic events?
 
 ```{r}
 ggplot(d) +
-  aes(x = mag) +
-  geom_histogram() +
-  facet_wrap(~type, scales = "free_y")
-  
-```
-
-```{r}
-ggplot(d) +
   aes(x = type, y = mag) +
   geom_boxplot()
 ```
@@ -249,7 +269,8 @@ Is "depthError" associated with "depth"?
 ```{r}
 ggplot(d) +
   aes(x = depth, y = depthError) +
-  geom_point()
+  geom_point() +
+  geom_smooth()
 ```
 
 
@@ -407,11 +428,11 @@ The elapsed time between the two seismic events is the first time minus the seco
 d$time[1] - d$time[2]
 ```
 
-The following R code does this for all times. It adds a column to our data frame called "elapsed_time" that stores the time elapsed between seismic events. We use the dplyr function `lead()` which returns the "next" value in a vector and perform subtraction. The last row will have NA since it's the oldest record in our data and we don't have the time of the earthquake before it.
+The following R code does this for all times. It adds a column to our data frame called "elapsed_time" that stores the time elapsed between seismic events. We use the dplyr function `lead()` to fetch the "next" value in a vector. The time difference is calculated by the `difftime()` function. The last row will have NA since it's the oldest record in our data and we don't have the time of the earthquake before it. The `units` argument stores the time difference as minutes.
 
 ```{r}
 d <- d %>% 
-  mutate(elapsed_time = time - lead(time))
+  mutate(elapsed_time = difftime(time, lead(time), units = "mins"))
 ```
 
 Quick look at the first 6 rows.
@@ -428,15 +449,24 @@ Please perform the following tasks.
 - Visualize the distribution of elapsed time.
 
 ```{r}
-ggplot(d) +
-  aes(x = elapsed_time) +
-  geom_histogram()
+hist(as.numeric(d$elapsed_time))
 ```
 
 - What is the median elapsed time between seismic events? In other words, about how often is the USGS detecting seismic events on earth?
 
 ```{r}
 median(d$elapsed_time, na.rm = TRUE)
+```
+
+- What's the estimated probability a seismic event happens in the next 60 seconds? (Hint: what is the proportion of elapsed times less than 1 minute?)
+
+```{r}
+mean(d$elapsed_time < 1, na.rm = TRUE)
+```
+
+
+```{r}
+pexp(q = 1, rate = 1/mean(as.numeric(d$elapsed_time), na.rm = TRUE))
 ```
 
 
@@ -449,9 +479,8 @@ Previously the elapsed time between seismic events was calculated worldwide.
 ```{r}
 d %>% 
   filter(location == "The Geysers, CA") %>% 
-  mutate(elapsed_time = time - lead(time)) %>% 
-  summarise(med = median(elapsed_time, na.rm = TRUE)) %>% 
-  mutate(minutes = time_length(as.duration(med), unit = "minutes"))
+  mutate(elapsed_time = difftime(time, lead(time), units = "mins")) %>% 
+  summarise(med = median(elapsed_time, na.rm = TRUE))
 ```
 
 - What was the median elapsed time between seismic events in "Pāhala, Hawaii"? Tip: "Pāhala, Hawaii" has a special character in it. When you `filter()`, consider using something like `str_detect(location, "P*hala, Hawaii")`
@@ -459,9 +488,8 @@ d %>%
 ```{r}
 d %>% 
   filter(str_detect(location, "P*hala, Hawaii")) %>% 
-  mutate(elapsed_time = time - lead(time)) %>% 
-  summarise(med = median(elapsed_time, na.rm = TRUE)) %>% 
-  mutate(minutes = time_length(as.duration(med), unit = "minutes"))
+  mutate(elapsed_time = difftime(time, lead(time), units = "mins")) %>% 
+  summarise(med = median(elapsed_time, na.rm = TRUE)) 
 
 ```
 

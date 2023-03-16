@@ -1,5 +1,6 @@
 ---
 title: "Essential Statistics"
+subtitle: "PhD+ 2023: Data Literacy in R<br>2023-03-29"
 author: "Clay Ford, UVA Library"
 format:
   revealjs:
@@ -7,6 +8,7 @@ format:
     smaller: true
     scrollable: true
     slide-number: true
+    logo: ../images/logo.png
     footer: clayford@virginia.edu | GitHub [@clayford](https://github.com/clayford)
 ---
 
@@ -25,7 +27,7 @@ David Spiegelhalter, *The Art of Statistics*
 
 In this session we explore using R to carry out and interpret basic statistical analyses and highlight potential sources of statistical errors.
 
--   Proportions and Percents
+-   Counts and Proportions
 -   Summarizing Numeric Data
 -   Uncertainty
 -   Hypothesis testing 

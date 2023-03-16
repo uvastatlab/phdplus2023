@@ -293,7 +293,23 @@ tab2_p["Monticello", "No", "Central Air"]/
 
 Of all homes with central air, Monticello has about 68% more homes without a fireplace than Albemarle.
 
-Can also calculate counts and proportions based on a condition.
+If you need a table as a data frame, which is needed for packages such as ggplot2, use the `as.data.frame()` function to make the conversion. By default the response name is labeled "Freq". You can change it with `responseName = "prop"`
+
+```{r}
+tab2_df <- as.data.frame(tab2_p, responseName = "prop")
+head(tab2_df)
+```
+
+Now use with ggplot2
+
+```{r}
+ggplot(tab2_df) +
+  aes(x = hsdistrict, y = prop, fill = fp) +
+  geom_col(position = "dodge") +
+  facet_wrap(~cooling)
+```
+
+We can also calculate counts and proportions based on a condition.
 
 Proportion of homes over 2000 finsqft in size:
 
@@ -317,7 +333,7 @@ xtabs(~ (finsqft > 2000) + hsdistrict, data = d) %>%
   round(2)
 ```
 
-The tidyverse way for counts and proportions requires more work and is documented in an appendix at the end of this script.
+The tidyverse way for counts and proportions requires more work and returns data frames. Google for more information.
 
 ## CODE ALONG 1
 
@@ -503,7 +519,7 @@ tapply(d$totalvalue, d$hsdistrict, median)
 tapply(d$totalvalue, d$hsdistrict, IQR)
 ```
 
-`tapply()` is ideal for use with functions that return lots of values. For example, using the `summary()` for totalvalue within each high school district.
+`tapply()` is ideal for use with functions that return more than one value. For example, using the `summary()` for totalvalue within each high school district.
 
 ```{r}
 tapply(d$totalvalue, d$hsdistrict, summary)  # list
@@ -823,7 +839,7 @@ SE_m <- sd(means)
 mean(samp) + c(-1, 1)*2*SE_m
 ```
 
-The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would take our single sample and estimate a confidence interval using a math formula courtesy of a function such as `t.test()`
+The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would take our _single sample_ and estimate a confidence interval using a math formula courtesy of a function such as `t.test()`
 
 ```{r}
 t.test(samp)
@@ -888,17 +904,17 @@ binom::binom.confint(x = sum(samp2 == "Yes", na.rm = TRUE), n = 50)
 
 ### 95% Confidence intervals
 
-The _process_ of calculating a confidence interval works 95% of the time. The "95%" is due to the fact that about 95% of the probability under a normal distribution is within two standard errors of the mean. And most sampling distributions are approximately normal.
+The _process_ of calculating a confidence interval usually works 95% of the time. The "95%" is due to the fact that about 95% of the probability under a normal distribution is within two standard errors of the mean. And most sampling distributions are approximately normal.
 
 Imagine a population that is truly massive, trillions in size, virtually infinite, normally distributed with a mean of 10 and a standard deviation of 2. Here's a picture of the distribution of that population:
 
 ```{r}
 # dnorm() is the formula to draw the Normal dist'n
-curve(dnorm(x, mean = 10, sd = 2,), from = (10 - 6), to = (10 + 6), 
+curve(dnorm(x, mean = 10, sd = 2), from = (10 - 6), to = (10 + 6), 
       main = "distribution of huge population", ylab = "", xlab = "")
 ```
 
-Let's pretend to sample 30 values from this population. We can do this with the `rnorm()` function.
+Let's sample 30 values from this population. We can do this with the `rnorm()` function.
 
 ```{r}
 z <- rnorm(30, mean = 10, sd = 2)
@@ -918,7 +934,7 @@ tout$conf.int[1] < 10 & tout$conf.int[2] > 10
 ```
 
 
-Repeat the process 1000 times using `replicate()`:
+Repeat the process 1000 times using `replicate()` (ie, sample and calculate 1000 confidence intervals):
 
 ```{r}
 ci_test <- replicate(n = 1000, expr = {
@@ -966,7 +982,7 @@ mean(ci_test)
 
 ```
 
-The coverage is actually not 95%! This can happen when sampling from very skewed populations.
+The coverage is actually not 95%! At least not with a sample size of 50. This can happen when sampling from very skewed populations.
 
 Let's try log-transforming our sample.
 
@@ -1038,50 +1054,23 @@ quantile(boot_median, probs = c(0.025, 0.975))
 
 ## CODE ALONG 3
 
-The following code randomly samples 120 homes in the Western Albemarle High school district. Use this data frame to answer the following questions.
+The following data contains a sample of captured kangaroo rats (Dipodomys merriami) that were used to estimate population size and density. <https://doi.org/10.5061/dryad.8pk0p2nns>
 
 ```{r}
-set.seed(123)
-wa_samp <- d %>% 
-  filter(hsdistrict == "Western Albemarle") %>% 
-  sample_n(120)
+rats <- read.csv("../data/parasite.csv")
 ```
 
-
-(1) Calculate 95% confidence interval on mean finsqft
+- The variable "Mass.g" measures the mass of the rat in grams at the time of sampling. Calculate the mean and a 95% confidence interval for "mass"
 
 ```{r}
-t.test(wa_samp$finsqft)
-smean.cl.normal(wa_samp$finsqft)
+smean.cl.normal(rats$Mass.g)
 ```
 
-
-(2) Does the 95% confidence interval capture the true value?
-
-```{r}
-d %>% 
-  filter(hsdistrict == "Western Albemarle") %>% 
-  summarize(mean(finsqft))
-```
-
-
-(3) Use a bootstrap to calculate a 95% confidence interval for the median age of homes in our sample. Use 1000 bootstraps.
+- The variable "Pterygodermatites.dipodomis" indicates whether a sample was positive for the presence of Pterygodermatites dipodomis (1 = positive, 0 = negative). Calculate the proportion of rats with this parasite and a 95% confidence interval
 
 ```{r}
-bootout <- replicate(n = 1000, expr = {
-  sage <- sample(wa_samp$age, replace = TRUE)
-  median(sage)
-})
-quantile(bootout, probs = c(0.025, 0.975))
-```
-
-
-(4) Does the 95% bootstrap CI capture the true median age value?
-
-```{r}
-d %>% 
-  filter(hsdistrict == "Western Albemarle") %>% 
-  summarize(median(age))
+table(rats$Pterygodermatites.dipodomis)
+prop.test(x = 70, n = 131 + 70)
 ```
 
 
@@ -1622,4 +1611,18 @@ ci_test_boot <- pbapply::pbreplicate(n = 1000, expr = {
 mean(ci_test_boot)
 ```
 
+## Appendix: ftable
+
+The `ftable()` function can help display tables with 3 or more variables. The "f" means "flatten".
+
+```{r}
+tab2 <- xtabs(~ hsdistrict + fp + cooling, data = d)
+ftable(tab2, exclude = NULL)
+```
+
+Specify row and column variables with the `row.vars` and `col.vars` arguments. 
+
+```{r}
+ftable(tab2, row.vars = c("cooling", "fp"), col.vars = "hsdistrict")
+```
 
