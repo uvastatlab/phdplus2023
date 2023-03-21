@@ -64,6 +64,8 @@ Instructor: David Martin
 
 One of the most difficult tasks when conducting data analysis is combining disparate datasets into a single usable dataset. This session will provide participants with the key functions and functionality found within R and the tidyverse package. Specifically, participants will be able to merge disparate datasets together, reorganize and reshape datasets, clean and prepare datasets in preparation for merging, work with dates, and other useful data wrangling tasks.
 
+[Workshop Materials](https://github.com/uvastatlab/phdplus2023/raw/main/docs/04_data_wrangling.zip)
+
 <br>
 
 #### **Essential Statistics**
