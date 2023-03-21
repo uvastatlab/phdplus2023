@@ -60,7 +60,7 @@ xtabs(~ hsdistrict + fp, data = d)
 ```
 
 
-Notice missing values are dropped by default! Set `addNA = TRUE` to see missing as a separate category
+Note: missing values are dropped by default! Set `addNA = TRUE` to see missing as a separate category
 
 ```{r}
 xtabs(~ hsdistrict + fp, data = d, addNA = TRUE)
@@ -79,7 +79,14 @@ tab
 ```
 
 
-Portions of table can be extracted using indexing brackets
+Portions of table can be extracted using indexing brackets.
+
+
+```{r}
+# row 1, column 2
+tab[1,2]
+```
+
 
 ```{r}
 # row 1
@@ -88,26 +95,25 @@ tab[1,]
 
 
 ```{r}
-# column 1
+# column 1; notice the result is transposed!
 tab[,1]
-```
-
-```{r}
-# row 1, column 2
-tab[1,2]
 ```
 
 Adding `drop=FALSE` preserves table structure
 
 ```{r}
+# row 1
 tab[1, , drop = FALSE]
 ```
 
+
 ```{r}
+# column 1
 tab[, 1, drop = FALSE]
 ```
 
 ```{r}
+# row 1, column 2
 tab[1, 2, drop = FALSE]
 ```
 
@@ -191,7 +197,7 @@ tab2 <- xtabs(~ hsdistrict + fp + cooling, data = d)
 tab2
 ```
 
-Portions of table can be extracted with indexing brackets; need to use 3 dimensions.
+Portions of table can be extracted with indexing brackets; _need to use 3 dimensions_.
 
 The third dimension refers to the strata
 
@@ -234,7 +240,7 @@ tab2[, "Yes", ,drop = FALSE]
 ```
 
 
-Calculate proportions across rows within each strata.
+Calculate proportions across rows _within each strata_.
 
 Within each cooling strata, for each high school district, what proportion of homes have and do not have fireplaces? Set `margin = c(1, 3)` (ie, across rows, within each strata)
 
@@ -325,7 +331,7 @@ mean(d$bedroom %in% 3:4)
 ```
 
 
-These conditions can be included in a call to `xtabs()`
+These conditions can be included in a call to `xtabs()`; wrap in parentheses.
 
 ```{r}
 xtabs(~ (finsqft > 2000) + hsdistrict, data = d) %>% 
@@ -368,6 +374,8 @@ xtabs(~ (lotsize > 1) + hsdistrict, data = d) %>%
   proportions(margin = 2) %>% 
   round(2)
 ```
+
+Back to the slides!
 
 
 ## Summarizing numeric data
@@ -482,19 +490,22 @@ plot(Fn)
 
 ### Numeric summaries by group
 
-We often to calculate summaries by groups. For example, what is the mean totalvalue by high school district?
+We often need to calculate summaries by groups. For example, what is the mean totalvalue by high school district?
 
 The `aggregate()` function can help us do this. It returns a data frame and uses the same formula syntax as `xtabs()`. Place the numeric variable on the left hand side. The last argument is the function we wish to use to summarize the numeric data in each group.
 
 ```{r}
+# mean totalvalue by hsdistrict
 aggregate(totalvalue ~ hsdistrict, data = d, mean)
 ```
 
 ```{r}
+# median totalvalue by hsdistrict
 aggregate(totalvalue ~ hsdistrict, data = d, median)
 ```
 
 ```{r}
+# IQR for totalvalue by hsdistrict
 aggregate(totalvalue ~ hsdistrict, data = d, IQR)
 ```
 
@@ -506,6 +517,8 @@ aggregate(totalvalue ~ hsdistrict, data = d, function(x)mean(x > 1e6))
 ```
 
 The `tapply()` returns a vector or list and requires vectors.
+
+`tapply(numeric variable, grouping variable, function)`
 
 ```{r}
 tapply(d$totalvalue, d$hsdistrict, mean)
@@ -519,7 +532,7 @@ tapply(d$totalvalue, d$hsdistrict, median)
 tapply(d$totalvalue, d$hsdistrict, IQR)
 ```
 
-`tapply()` is ideal for use with functions that return more than one value. For example, using the `summary()` for totalvalue within each high school district.
+`tapply()` is ideal for use with functions that return _more than one value_. For example, using the `summary()` for totalvalue within each high school district.
 
 ```{r}
 tapply(d$totalvalue, d$hsdistrict, summary)  # list
@@ -538,7 +551,7 @@ For `aggregate()`, separate groups by `+`. The result is a data frame
 aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
 ```
 
-For `tapply()`, wrap groups in `list()`. The result is a matrix.
+For `tapply()`, wrap groups in `list()`. The result is a _matrix_.
 
 ```{r}
 tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
@@ -548,25 +561,29 @@ tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
 A matrix is desirable for _reporting_.
 A data frame is desirable for _plotting_. 
 
-For example, notice how we can directly pipe the output of `aggregate()`, a data frame, into ggplot code for for plotting.
+For example, below we use `aggregate()` to create a data frame for plotting.
 
 ```{r}
-aggregate(totalvalue ~ hsdistrict + cooling, data = d, median) %>% 
-  ggplot() +
+med_df <- aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
+
+ggplot(med_df) +
   aes(x = hsdistrict, y = totalvalue, color = cooling) +
   geom_point(size = 3) +
   scale_y_continuous(labels = scales::dollar) +
-  labs(title = 'Median home values by HS District and Central Air status')
+  labs(title = 'Median home values by HS District and Central Air status',
+       x = 'High School District', y = 'Total Home Value', 
+       color = 'Cooling Status')
 
 ```
 
 Some R users prefer using tidyverse functions for this type of summary, but notice the missing values are included by default in the legend.
 
 ```{r}
-d %>% 
+med_df2 <- d %>% 
   group_by(hsdistrict, cooling) %>% 
-  summarize(totalvalue = median(totalvalue)) %>% 
-  ggplot() +
+  summarize(totalvalue = median(totalvalue))
+
+ggplot(med_df2) +
   aes(x = hsdistrict, y = totalvalue, color = cooling) +
   geom_point(size = 3) +
   scale_y_continuous(labels = scales::dollar) +
@@ -576,11 +593,12 @@ d %>%
 To drop the missing values we need to filter them out. Below `!is.na()` means filter out the records that are not missing a value for cooling.
 
 ```{r}
-d %>% 
+med_df2 <- d %>% 
   filter(!is.na(cooling)) %>% 
   group_by(hsdistrict, cooling) %>% 
-  summarize(totalvalue = median(totalvalue)) %>% 
-  ggplot() +
+  summarize(totalvalue = median(totalvalue))
+
+ggplot(med_df2) +
   aes(x = hsdistrict, y = totalvalue, color = cooling) +
   geom_point(size = 3) +
   scale_y_continuous(labels = scales::dollar) +
@@ -617,7 +635,7 @@ cor(d$finsqft, d$totalvalue, method = "pearson")
 cor(d$finsqft, d$totalvalue, method = "spearman")
 ```
 
-Correlation should always be accompanied by a scatter plot. A smooth trend line can help us assess the nature of the linear relationship.(if any exists)
+Correlation should always be accompanied by a scatter plot. A smooth trend line can help us assess the nature of the linear relationship (if any exists)
 
 ```{r}
 ggplot(d) +
@@ -668,7 +686,7 @@ ggplot(d) +
 ```
 
 
-The `cor()` function works for data frames. This allows us to calculate correlation matrices. Below we select three columns and then pipe into the `cor()` function.  
+The `cor()` function works for data frames. This allows us to calculate correlation matrices. Below we select four columns and then pipe into the `cor()` function.  
 
 ```{r}
 d %>% 
@@ -784,6 +802,9 @@ d %>%
 
 ```
 
+
+Back to the presentation!
+
 ## Uncertainty 
 
 ### Uncertainty about a mean
@@ -799,7 +820,7 @@ mean(samp)
 
 We will all get different means. How uncertain are our estimates of the population mean? This is one of the fundamental aims of statistical inference: estimating the _standard error_ of an estimate. 
 
-A theoretical estimate of the standard error of the sample means is to take the standard deviation of the sample and divide by the square root of the sample size.
+A theoretical estimate of the standard error of the sample mean is to take the standard deviation of the sample and divide by the square root of the sample size.
 
 ```{r}
 sd(samp)/sqrt(50)  # standard error of the mean
@@ -807,7 +828,7 @@ sd(samp)/sqrt(50)  # standard error of the mean
 
 Again, if you're following along in your version of this notebook, you got a different standard error.
 
-Our estimate of the population mean is our sample mean give or take the standard error. To be on the safe side, we usually give or take about two standard errors.
+Our estimate of the population mean is our sample mean give or take the standard error. To be on the safe side, we usually give or take about two standard errors (ie, that's how we make a confidence interval).
 
 R allows us to easily simulate the process of sampling data and calculating the mean. Below we use the `replicate()` function to replicate our code above 10,000 times.
 
@@ -990,7 +1011,7 @@ Let's try log-transforming our sample.
 true_log_mean <- mean(log(d$totalvalue))
 ci_test_log <- replicate(n = 1000, expr = {
   samp <- sample(d$totalvalue, 50, replace = TRUE)
-  tout <- t.test(log(samp), conf.level = 0.95)
+  tout <- t.test(log(samp), conf.level = 0.95)  # Notice log() transform
   tout$conf.int[1] < true_log_mean & tout$conf.int[2] > true_log_mean
 })
 mean(ci_test_log)
@@ -1057,7 +1078,7 @@ quantile(boot_median, probs = c(0.025, 0.975))
 The following data contains a sample of captured kangaroo rats (Dipodomys merriami) that were used to estimate population size and density. <https://doi.org/10.5061/dryad.8pk0p2nns>
 
 ```{r}
-rats <- read.csv("../data/parasite.csv")
+rats <- read.csv("https://github.com/uvastatlab/phdplus2023/raw/main/data/parasite.csv")
 ```
 
 - The variable "Mass.g" measures the mass of the rat in grams at the time of sampling. Calculate the mean and a 95% confidence interval for "mass"
@@ -1073,176 +1094,86 @@ table(rats$Pterygodermatites.dipodomis)
 prop.test(x = 70, n = 131 + 70)
 ```
 
+Back to the slide deck! 
 
 ## Hypothesis Testing 
 
-Sometimes researchers do hypothesis testing on "all the data" based on the assumption the data collected is just one sample of a super-population of possibilities.
+RECAP
 
-### Chi-square test of association
+1. assume some null hypothesis is true
+2. calculate some statistic on data (eg, compare means)
+3. calculate probability of getting a statistic that big, or bigger (or that small, smaller) if null hypothesis is true
+4. if the probability (the p-value) is small, then we have evidence against the null hypothesis
 
-Is condition of home associated with high school district? There are small differences in the proportion of average and good homes.
+That's it. It's just a probability. p < 0.05 is not a magic threshold for certainty.
+
+### Comparing two proportions
+
+In the kangaroo rats data, about 35% had Pterygodermatites
 
 ```{r}
-xtabs(~ condition + hsdistrict, data = d) |>
-  proportions(margin = 2) |>
-  round(2)
+table(rats$Pterygodermatites.dipodomis) %>% proportions()
 ```
 
-We can use a Chi-square test of association to investigate. This hypothesis test allows us to calculate the probability of getting differences in proportions as big or bigger assuming no difference among the high school districts. The `chisq.test()` function can be used with a table object.
+while about 20% had Mastophorus
 
 ```{r}
-ct <- xtabs(~ condition + hsdistrict, data = d)
-chisq.test(ct)
-```
-
-A small p-value provides evidence against the null of no association. We might conclude that knowing the high school district gives us some information about the expected condition of a house.
-
-But it's important to note the p-value does not tell us anything about how conditions differ between high school districts.
-
-_Residuals_ tell us which cell counts are bigger/smaller than expected. Values greater than 2.5 or 3 in absolute value are of interest. These are standardized values.
-
-```{r}
-ctest <- chisq.test(ct)
-ctest$residuals
-```
-
-It appears there are more homes in "Good" condition in Albemarle county than expected, and fewer homes in "Good" condition in Monticello then expected.
-
-### two-sample proportion test
-
-Is the difference in proportions of Excellent homes in Albemarle and Western Albemarle "significant"? (Many statisticians hate that phrase)
-
-```{r}
-xtabs(~ condition + hsdistrict, data = d) |>
-  proportions(margin = 2) |>
-  round(3)
-```
-
-To compare two proportions we can use the `prop.test()` function. We need the number of homes that rated "Excellent" and the total number of homes. The `addmargins()` function gives us marginal totals (ie, row sums and column sums)
-
-```{r}
-xtabs(~ condition + hsdistrict, data = d) %>% 
-  addmargins()
-```
-
-We can run the hypothesis test using `prop.test()`. The first argument is number of homes in Excellent condition for Albemarle and Western Albemarle, respectively. The second argument is the total number of homes in each high school district.
-
-```{r}
-prop.test(x = c(189, 239), n = c(12714, 9421))
-```
-
-Statistically it seems significant with such a small p-value, but practically speaking the difference doesn't seem that dramatic. Big sample sizes can lead to "significant" p-values for very small differences.
-
-### two sample t-test
-
-Does totalvalue differ between homes with and without fireplaces? Could investigate with a t-test. We can use R's formula syntax `totalvalue ~ fp` that basically says in this case "compare totalvalue grouped by fp"
-
-```{r}
-t.test(totalvalue ~ fp, data = d)
-```
-
-
-A small p-value provides evidence against the null of no difference, but does not tell us about the difference. Instead look at 95% confidence interval on the difference.
-
-The formal null hypothesis of a two-sample t-test is that both samples came from the same normal distribution. 
-
-Maybe we should look at the distribution of totalvalue by fp.
-
-```{r}
-ggplot(filter(d, !is.na(fp))) +
-  aes(x = totalvalue, fill = fp) +
-  geom_density(alpha = 1/3)
-```
-
-
-Ideally we would like to see the distributions of each group looking roughly symmetric. One option is a log transformation
-
-```{r}
-ggplot(filter(d, !is.na(fp))) +
-  aes(x = log(totalvalue), fill = fp) +
-  geom_density(alpha = 1/3)
+table(rats$Mastophorus.dipodomis) %>% proportions()
 
 ```
 
-Let's try a t-test on the log-transformed data.
+That's an absolute difference of about 15%.
+
+Assume there is no difference in these proportions in the population. What's the probability we would see a difference as big or bigger than this if that's true.
+
+We can use `prop.test()` to carry out this test. First we need to tally the number of "successes" and the number of "trials"
 
 ```{r}
-tout <- t.test(log(totalvalue) ~ fp, data = d)
-tout
-
+cnt1 <- table(rats$Pterygodermatites.dipodomis)[2]
+cnt2 <- table(rats$Mastophorus.dipodomis)[2]
+n1 <- sum(table(rats$Pterygodermatites.dipodomis))
+n2 <- sum(table(rats$Mastophorus.dipodomis))
 ```
 
-We get the same basic result as far as the hypothesis test goes, but the estimated means and confidence interval are on the log scale.
-
-We can use the `exp()` function to undo the log transformation (ie, take the anti-log) and see the expected mean values, aka the geometric means.
+Now plug these values into `prop.test()`
 
 ```{r}
-exp(tout$estimate)
+prop.test(x = c(cnt1, cnt2), n = c(n1, n2))
 ```
 
+The p-value is reported as 0.001786. This seems like good evidence that the proportion of rats with Pterygodermatites is higher. 
 
-The confidence limits for the difference between means cannot be transformed back to the original scale
+The 95% confidence interval on the difference in proportions is [0.05, 0.23]. All of these values are equally plausible. 
+
+### Comparing two means
+
+Are male kangaroo rats heavier than female kangaroo rats on average? They seem slightly heavier.
 
 ```{r}
-tout$conf.int
+aggregate(Mass.g ~ Sex, data = rats, mean)
 ```
 
-Instead, if we exponentiate, we get a 95% CI for the _ratio of the geometric means_. 
+Assume there is no difference in the means. What's the probability we would see a difference as big or bigger than this if that's true?
+
+We can use `t.test()` to carry out this test.
 
 ```{r}
-exp(tout$conf.int)
+t.test(Mass.g ~ Sex, data = rats)
 ```
 
-Subtract from 1 to make it a little more interpretable.
+The p-value is reported as 0.4048. It seems probable we would see data like we observed if there really is no difference in mass between the sexes. 
+
+The 95% confidence interval on the difference in means overlaps 0 with both negative and positive numbers. All of these values are equally plausible. Whatever the "true" difference in means is between sexes, it's probably very small and not important.
+
+It's good practice to visualize data when comparing means. Here's a simple box plot. We would like both groups to have similar variability and be roughly symmetric. Violations of those properties lead to other approaches such as log transformations, permutation tests, bootstrapping, and non-parametric tests.
 
 ```{r}
-1 - exp(tout$conf.int) # about 44% - 43% lower
+boxplot(Mass.g ~ Sex, data = rats)
 ```
 
-The geometric mean of homes without fireplaces is about 44% - 43% lower than homes with fireplaces. (ie, \$277,741 is about 43-44% lower than \$491,747)
+Most statistical analyses require more sophisticated methods than simple hypothesis tests. 
 
-We can calculate the ratio of the geometric means. It's about 0.56. The 95% CI
-is about [0.55, 0.57]
-
-```{r}
-exp(12.53444)/exp(13.10572)
-```
-
-Again this demonstrates how a log-transformation results in an analysis of relative differences instead of absolute differences. 
-
-### Wilcoxon Rank Sum test (aka Mann-Whitney)
-
-Instead of a log transformation we might have considered a non-parametric test, such as the _Wilcoxon Rank Sum test_. Whereas the formal null hypothesis of a two-sample t-test is that both samples came from the same normal distribution, the formal null of the Wilcoxon is that both samples came from the same distribution. No particular distribution is assumed. 
-
-This Wilcoxon Rank Sum test compares the _ranks_ of the data instead of the values themselves. We can do this with the `wilcox.test()` function. This takes a second!
-
-```{r}
-wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
-```
-
-The "difference in location" estimates _the median of the difference between a sample from homes with fireplaces and a sample from homes without fireplaces_.
-
-Again, given how much data we have and how big the difference is between mean totalvalues for homes without and with fireplaces, the p-value of whatever test we choose seems to be a formality not terribly informative.
-
-## CODE ALONG 4
-
-Observe the following proportions
-
-```{r}
-xtabs(~ hsdistrict + fp, data = d) %>% 
-  proportions(margin = 1) %>% 
-  round(2)
-```
-
-
-(1) Assuming no difference in proportion of fireplaces in Albemarle and Western Albemarle high school districts, what is probability we would get data like this or more extreme (0.79 vs 0.75)?
-
-```{r}
-xtabs(~ hsdistrict + fp, data = d) %>% 
-  addmargins()
-prop.test(x = c(9962, 7014), n = c(12615, 9382))
-```
-
+Back to the presentation!
 
 ## Modeling 
 
@@ -1564,7 +1495,7 @@ ggpredict(m7, terms = "hsdistrict") %>%
 
 There are many big books on linear modeling. This was not comprehensive!
 
-## CODE ALONG 5 
+## CODE ALONG 4
 
 (1) Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
 
@@ -1626,3 +1557,125 @@ Specify row and column variables with the `row.vars` and `col.vars` arguments.
 ftable(tab2, row.vars = c("cooling", "fp"), col.vars = "hsdistrict")
 ```
 
+
+### Appendix: Chi-square test of association
+
+Is condition of home associated with high school district? There are small differences in the proportion of average and good homes.
+
+```{r}
+xtabs(~ condition + hsdistrict, data = d) %>% 
+  proportions(margin = 2) %>% 
+  round(2)
+```
+
+We can use a Chi-square test of association to investigate. This hypothesis test allows us to calculate the probability of getting differences in proportions as big or bigger assuming no difference among the high school districts. The `chisq.test()` function can be used with a table object.
+
+```{r}
+ct <- xtabs(~ condition + hsdistrict, data = d)
+chisq.test(ct)
+```
+
+A small p-value provides evidence against the null of no association. We might conclude that knowing the high school district gives us some information about the expected condition of a house.
+
+But it's important to note the p-value does not tell us anything about how conditions differ between high school districts.
+
+_Residuals_ tell us which cell counts are bigger/smaller than expected. Values greater than 2.5 or 3 in absolute value are of interest. These are standardized values.
+
+```{r}
+ctest <- chisq.test(ct)
+ctest$residuals
+```
+
+It appears there are more homes in "Good" condition in Albemarle county than expected, and fewer homes in "Good" condition in Monticello then expected.
+
+
+### Appendix: two sample t-test with log transformation
+
+Does totalvalue differ between homes with and without fireplaces? Could investigate with a t-test. We can use R's formula syntax `totalvalue ~ fp` that basically says in this case "compare totalvalue grouped by fp"
+
+```{r}
+t.test(totalvalue ~ fp, data = d)
+```
+
+
+A small p-value provides evidence against the null of no difference, but does not tell us about the difference. Instead look at 95% confidence interval on the difference.
+
+The formal null hypothesis of a two-sample t-test is that both samples came from the same normal distribution. 
+
+Maybe we should look at the distribution of totalvalue by fp.
+
+```{r}
+ggplot(filter(d, !is.na(fp))) +
+  aes(x = totalvalue, fill = fp) +
+  geom_density(alpha = 1/3)
+```
+
+
+Ideally we would like to see the distributions of each group looking roughly symmetric. One option is a log transformation
+
+```{r}
+ggplot(filter(d, !is.na(fp))) +
+  aes(x = log(totalvalue), fill = fp) +
+  geom_density(alpha = 1/3)
+
+```
+
+Let's try a t-test on the log-transformed data.
+
+```{r}
+tout <- t.test(log(totalvalue) ~ fp, data = d)
+tout
+
+```
+
+We get the same basic result as far as the hypothesis test goes, but the estimated means and confidence interval are on the log scale.
+
+We can use the `exp()` function to undo the log transformation (ie, take the anti-log) and see the expected mean values, aka the geometric means.
+
+```{r}
+exp(tout$estimate)
+```
+
+
+The confidence limits for the difference between means cannot be transformed back to the original scale
+
+```{r}
+tout$conf.int
+```
+
+Instead, if we exponentiate, we get a 95% CI for the _ratio of the geometric means_. 
+
+```{r}
+exp(tout$conf.int)
+```
+
+Subtract from 1 to make it a little more interpretable.
+
+```{r}
+1 - exp(tout$conf.int) # about 44% - 43% lower
+```
+
+The geometric mean of homes without fireplaces is about 44% - 43% lower than homes with fireplaces. (ie, \$277,741 is about 43-44% lower than \$491,747)
+
+We can calculate the ratio of the geometric means. It's about 0.56. The 95% CI
+is about [0.55, 0.57]
+
+```{r}
+exp(12.53444)/exp(13.10572)
+```
+
+Again this demonstrates how a log-transformation results in an analysis of relative differences instead of absolute differences. 
+
+### Appendix: Wilcoxon Rank Sum test (aka Mann-Whitney)
+
+Instead of a log transformation we might have considered a non-parametric test, such as the _Wilcoxon Rank Sum test_. Whereas the formal null hypothesis of a two-sample t-test is that both samples came from the same normal distribution, the formal null of the Wilcoxon is that both samples came from the same distribution. No particular distribution is assumed. 
+
+This Wilcoxon Rank Sum test compares the _ranks_ of the data instead of the values themselves. We can do this with the `wilcox.test()` function. This takes a second!
+
+```{r}
+wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
+```
+
+The "difference in location" estimates _the median of the difference between a sample from homes with fireplaces and a sample from homes without fireplaces_.
+
+Again, given how much data we have and how big the difference is between mean totalvalues for homes without and with fireplaces, the p-value of whatever test we choose seems to be a formality not terribly informative.

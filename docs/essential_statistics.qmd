@@ -211,7 +211,7 @@ IQR(d$totalvalue)
 As summaries of data, they can be confusing if your audience is not familiar with the concept of spread.
 
 ::: callout-tip
-Data with no variability has a standard deviation/IQR of 0.
+Data with no variability has a standard deviation/IQR of 0. SD/IQR is $\ge 0$
 :::
 
 ## Percentiles/Quantiles/Quartiles
@@ -259,8 +259,8 @@ This basically translates data into _magnitudes_.
 
 ```{r echo=TRUE}
 x <- c(10, 100, 1000, 10000, 100000, 1000000)
-log10(x) # what power do we raise 10 to get x?
-log(x) # what power do we raise e to get x?
+log10(x) # what power do we raise 10 to get x? Log base 10
+log(x) # what power do we raise e to get x? Natural log
 ```
 
 Natural logs are often preferred in statistical analyses because they can make interpretation easier. 
@@ -354,7 +354,7 @@ Now calculate the standard deviation of those means. That's the _standard error_
 
 The standard deviation of the sample means summarizes the uncertainty of our sample mean.
 
-In practice, we don't take thousands of means. We take one and we usually calculate standard error using a formula such as $sd/\sqrt{n}$.
+In practice, we don't take thousands of means. We take one and we usually calculate standard error using a formula such as $SD_{\text{sample}}/\sqrt{n}$.
 
 For example, a [study](https://www.sciencedirect.com/science/article/pii/S2314853516300555) estimated the mean weight of chicken eggs to be about 55.02g with a standard error of 0.40 when the chicken was 25 weeks old. 
 
@@ -375,7 +375,7 @@ means <- replicate(n = 1000, expr = {
 })
 
 op <- par(mfrow = c(1,2), pty = "s")
-curve(dchisq(x, df = 8), from = 0, to = 20, ylab = "", xlab = "", 
+curve(dchisq(x, df = 8), from = 0, to = 30, ylab = "", xlab = "", 
       main = "skewed population\nmean = 8")
 plot(density(means), ylab = "", xlab = "", main = "distribution of 1000 sample means\nfrom skewed population (n=30)")
 par(op)
@@ -467,7 +467,7 @@ This is often called the **Frequentist** philosophy because p-values and confide
 
 **Example**: there is a true mean weight of student backpacks at UVA. Our sample and confidence interval is our attempt to estimate the range of the true mean. Repeated samples and confidence intervals will capture true mean 95% of the time.
 
-**Example**: If painting cows like zebras has no effect on number of fly bites, we would expect to see the type of data we collected, or more extreme data, 0.0001 of the time.
+**Example**: If painting cows like zebras has no effect on number of fly bites, we would expect to see the type of data we collected, or more extreme data, less than 0.0001 of the time.
 
 ## The Bayesian view
 
