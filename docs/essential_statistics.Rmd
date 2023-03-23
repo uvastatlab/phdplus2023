@@ -554,12 +554,12 @@ aggregate(totalvalue ~ hsdistrict + cooling, data = d, median)
 For `tapply()`, wrap groups in `list()`. The result is a _matrix_.
 
 ```{r}
-tapply(d$totalvalue, list(d$hsdistrict, d$cooling), mean)
+tapply(d$totalvalue, list(d$hsdistrict, d$cooling), median)
 ```
 
 
-A matrix is desirable for _reporting_.
-A data frame is desirable for _plotting_. 
+A matrix is often desirable for _reporting_.
+A data frame is often desirable for _plotting_ and _modeling_. 
 
 For example, below we use `aggregate()` to create a data frame for plotting.
 
@@ -570,9 +570,9 @@ ggplot(med_df) +
   aes(x = hsdistrict, y = totalvalue, color = cooling) +
   geom_point(size = 3) +
   scale_y_continuous(labels = scales::dollar) +
+  guides(color = guide_legend("Cooling Status", reverse = TRUE)) +
   labs(title = 'Median home values by HS District and Central Air status',
-       x = 'High School District', y = 'Total Home Value', 
-       color = 'Cooling Status')
+       x = 'High School District', y = 'Total Home Value')
 
 ```
 
@@ -590,7 +590,19 @@ ggplot(med_df2) +
   labs(title = 'Median home values by HS District and Central Air status')
 ```
 
-To drop the missing values we need to filter them out. Below `!is.na()` means filter out the records that are not missing a value for cooling.
+If we want to drop the NAs, we can add `scale_color_discrete(na.translate = FALSE)`
+
+```{r}
+ggplot(med_df2) +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_discrete(na.translate = FALSE) +
+  labs(title = 'Median home values by HS District and Central Air status')
+  
+```
+
+We can also filter them out using `!is.na()`. The means filter out the records that are NOT missing a value for cooling.
 
 ```{r}
 med_df2 <- d %>% 
@@ -600,7 +612,7 @@ med_df2 <- d %>%
 
 ggplot(med_df2) +
   aes(x = hsdistrict, y = totalvalue, color = cooling) +
-  geom_point(size = 3) +
+  geom_point(size = 3, na.translate = FALSE) +
   scale_y_continuous(labels = scales::dollar) +
   labs(title = 'Median home values by HS District and Central Air status')
 ```
@@ -784,21 +796,6 @@ ggplot(d) +
   geom_point() +
   geom_smooth() +
   xlim(0, 20)
-
-```
-
-
-(4) summarize the log-transformed improvements value. What do we notice?
-
-```{r}
-summary(d$improvementsvalue)
-hist(d$improvementsvalue, breaks = 200)
-summary(log(d$improvementsvalue))
-summary(log(d$improvementsvalue[d$improvementsvalue > 0]))
-
-d %>% 
-  filter(improvementsvalue > 0) %>% 
-  summarise(m = exp(mean(log(improvementsvalue))))
 
 ```
 
@@ -1003,7 +1000,7 @@ mean(ci_test)
 
 ```
 
-The coverage is actually not 95%! At least not with a sample size of 50. This can happen when sampling from very skewed populations.
+The coverage is actually not 95%! (At least not with a sample size of 50.) This can happen when sampling from very skewed populations.
 
 Let's try log-transforming our sample.
 
@@ -1021,56 +1018,6 @@ mean(ci_test_log)
 This has the stated 95% coverage. We might say we're confident in the process of calculating confidence intervals for log-transformed data.
 
 Again, in practice we only get one sample. We don't get to resample the population thousands of times.
-
-### Bootstrapping
-
-However we can do something called _bootstrapping_ that treats the sample like the population.
-
-Let's take one sample of size 50:
-
-```{r}
-tv <- sample(d$totalvalue, 50)
-```
-
-Now let's resample from our sample _with replacement_ 1000 times, each time calculating the sample mean.
-
-```{r}
-boot_mean <- replicate(n = 1000, expr = {
-  tv_samp <- sample(tv, replace = TRUE)
-  mean(tv_samp)
-})
-```
-
-The standard deviation of our bootstrap means can serve as an estimate of _standard error_.
-
-```{r}
-sd(boot_mean)
-```
-
-Further we can get 95% confidence interval using 2.5% and 97.5% percentiles:
-
-```{r}
-quantile(boot_mean, probs = c(0.025, 0.975))
-```
-
-The `smean.cl.boot()` function from the {Hmisc} package does all this for us. If you run this too, you'll get a slightly different result.
-
-```{r}
-Hmisc::smean.cl.boot(tv)
-```
-
-
-Bootstrapping works well for creating confidence intervals for medians.
-
-```{r}
-boot_median <- replicate(n = 1000, expr = {
-  tv_samp <- sample(tv, replace = TRUE)
-  median(tv_samp)
-})
-
-# get 95% CI as 2.5 and 97.5 percentiles
-quantile(boot_median, probs = c(0.025, 0.975))
-```
 
 
 ## CODE ALONG 3
@@ -1255,7 +1202,7 @@ But is this a good model? Should we trust these predictions?
 Adjusted R-squared:  0.578 
 This suggests about 58% of the variation in totalvalue is "explained" by finsqft.
 
-Can also look at residuals versus fitted value plot
+Can also look at _residuals_ versus _fitted values_ plot
 residual = observed value - fitted value
 
 There are 6 available plots; we ask for the first plot
@@ -1302,126 +1249,63 @@ coef(m2)["finsqft"] * 100
 
 Every additional 100 finsqft adds about 4.8% to totalvalue of home. This is a _relative_ effect. The 4.8% change is constant, but relative to the current totalvalue.
 
-Is this a good model? The residual vs fitted plot is a good first check.
+Is this a good model? The residuals vs fitted values plot is a good first check.
 
 ```{r}
 plot(m2, which = 1)
 ```
 
 
-Verdict: Now predicted values seem worse for smaller predicted values. 
+Verdict: Now predicted values seem worse for smaller predicted values. But the model still seems like it may be useful
 
-### MODEL 3: non-linear effect of predictor
-
-In the previous two models we assumed the effect of finsqft was _linear_ (ie, it had a constant slope). Going from 1500 - 1600 finsqft has the same effect on totalvalue as going from 2500 - 2600 finsqft.
-
-It may be more realistic to assume a _non-linear_ effect. This is, an effect that is not constant. Maybe adding more finsqft to a home has a more dramatic impact on totalvalue when the home has around 1500 finsqft versus a home that is 3500 finsqft.
-
-We can model non-linear effects using _natural splines_. The {splines} package that comes with R makes this relatively easy to implement. Splines are more sophisticated and better behaved than polynomials.
-
-The `ns(finsqft, df = 2)` code is similar to fitting a polynomial: x + x^2
+Let's visualize the model using the {ggeffects} package. The `ggpredict()` function makes predictions for the specified variable. We can pipe the result in `plot()` and see a fitted line through the scatter plot of totalvalue vs finsqft.
 
 ```{r}
-library(splines)
-m3 <- lm(log(totalvalue) ~ ns(finsqft, df = 2), data = d)
+ggpredict(m2, terms = "finsqft") %>% 
+  plot(add.data = TRUE, dot.alpha = 0.1)
+```
+
+What's the expected value for a home with 2500 finsqft?
+
+```{r}
+predict(m2, newdata = data.frame(finsqft = 2500), interval = "confidence")
+```
+
+The result is on the log scale. Use `exp()` to return to the original scale.
+
+```{r}
+predict(m2, newdata = data.frame(finsqft = 2500), interval = "confidence") %>% 
+  exp()
+```
+
+
+### MODEL 3: two predictors with interaction
+
+Let's build a more complex model with two predictors: finsqft and cooling. We will let them interact. That is, we believe the effect of finsqft depends on cooling status.
+
+We define an interaction with a colon `:`. This says the association between totalvalue and finsqft depends on cooling.
+
+```{r}
+m3 <- lm(log(totalvalue) ~ finsqft + cooling + finsqft:cooling, 
+         data = d)
 summary(m3)
 ```
 
-There is no interpretation of coefficients! The effect is not a simple coefficient. Before we worry about interpretation, is this a good model?
+The last row of the summary output tests the interaction. It certainly seems to "significant" but is difficult to interpret.
+
+This seems like an OK model, at least for most homes. The residuals versus fitted values plot seems reasonable for most homes.
 
 ```{r}
 plot(m3, which = 1)
 ```
 
-Verdict: This seems like an improvement on model 2
-
-One way to compare models is via information criteria such as AIC (Akaike information criterion). AIC is a statistic designed to help us choose a model with the best predictive power among a group of models. The value of  AIC doesn't really have any interpretation. It's meant to be compared to other AIC values. The lower the AIC the better.  "df" is short for "degrees of freedom" and is the number of parameters estimated in the model. This includes the residual standard error.
-
-```{r}
-AIC(m2, m3)
-```
-
-We can only compare models with the _same response_ fit to the same data. That's why we can't include the first model, m1. It was fit to the raw data. The next two models, m2 and m3, were fit to log-transformed data.
-
-Let's visualize and use the model. We use the `ggpredict()` function from the {ggeffects} package to create predictions at various finsqft values and then use the {ggeffects} `plot()` method to visualize.
-
-```{r}
-ggpredict(m3, terms = "finsqft") %>% 
-  plot()
-```
-
-We can plot this line with the raw data by adding `add.data = TRUE` to `plot()`.The `dot.alpha = 0.1` argument changes the transparency of the dots
-
-```{r}
-ggpredict(m3, terms = "finsqft") %>% 
-  plot(add.data = TRUE, dot.alpha = 0.1)
-```
-
-
-Use `predict()` to make model predictions; need to exponentiate to get predicted value on original scale.
-
-```{r}
-predict(m3, newdata = data.frame(finsqft = 2500)) %>% exp()
-```
-
-Expected mean value of _homes_ with 2500 finsqft
-
-```{r}
-predict(m3, newdata = data.frame(finsqft = 2500), 
-        interval = "confidence") %>% exp()
-
-```
-
-Expected value of _a home_ with 2500 finsqft
-
-```{r}
-predict(m3, newdata = data.frame(finsqft = 2500), 
-        interval = "prediction") %>% exp()
-
-```
-
-
-### MODEL 4: three predictors
-
-Let's build a more complex model with multiple predictors, including finsqft, cooling, and fullbath.
-
-Below we allow finsqft to _interact_ with cooling. We define an interaction with a colon `:`. This says the association between totalvalue and finsqft depends on cooling.
-
-```{r}
-m4 <- lm(log(totalvalue) ~ ns(finsqft, df = 2) + cooling + 
-           ns(finsqft, df = 2):cooling + 
-           fullbath, 
-         data = d)
-summary(m4)
-```
-
-
-An Analysis of Variance Table can help us assess whether or not interactions are warranted. This runs a series of hypothesis tests comparing progressively more complex models.
-
-```{r}
-anova(m4)
-```
-
-
-The first line is a hypothesis test comparing a model with no predictors (just the overall mean) to a model with `ns(finsqft, df = 2)`. The null is no difference between the models. This is soundly rejected.
-
-The second line is a hypothesis test comparing a model with `ns(finsqft, df = 2)` to a model with `ns(finsqft, df = 2)` and `cooling`. The null is no difference between models. This is also soundly rejected. And so on down the table.
-
-The last line tests whether the interaction should be included. Based on the p-value it seems warranted.
-
-This seems like an OK model, at least for most homes. The residual versus fitted value plot seems reasonable.
-
-```{r}
-plot(m4, which = 1)
-```
-
 
 Let's visualize the interaction in the model using effect plots. We can do that with `ggpredict()` by specifying `terms = c("finsqft", "cooling")`.
 
-The interaction appears to happen after 5000 finsqft. But the thick confidence ribbon indicates there are few (if any) homes that big without cooling.
+The interaction appears to happen after 7500 finsqft. But the thick confidence ribbon indicates there are few (if any) homes that big without cooling.
 
 ```{r}
-ggpredict(m4, terms = c("finsqft", "cooling")) %>% 
+ggpredict(m3, terms = c("finsqft", "cooling")) %>% 
   plot()
 ```
 
@@ -1429,38 +1313,33 @@ ggpredict(m4, terms = c("finsqft", "cooling")) %>%
 The "significant" interaction doesn't seem that interesting when zoomed in on a reasonable range of finsqft. The syntax `finsqft[1000:5000]` only works for functions in the {ggeffects} package.
 
 ```{r}
-ggpredict(m4, terms = c("finsqft[1000:5000]", "cooling")) %>% 
+ggpredict(m3, terms = c("finsqft[1000:5000]", "cooling")) %>% 
   plot()
 ```
 
+This interaction is small and not important.
 
-We can view the effect of fullbaths from 1 - 5.
-
+In the model, notice we have a coefficient for "Central Air" only. That's because "No Central Air" is the reference level or baseline.
 
 ```{r}
-ggpredict(m4, terms = "fullbath[1:5]") %>% 
-  plot()
+coef(m3)
+```
+
+For homes with "No Central Air", the effect of finsqft is the finsqft coefficient. About a 5% increase for each additional 100 finsqft.
+
+```{r}
+coef(m3)[2] * 100
+```
+
+For homes with "Central Air", the effect of finsqft is the finsqft coefficient plus the interaction term. About a 4.5% increase for each additional 100 finsqft.
+
+```{r}
+sum(coef(m3)[2] + coef(m3)[4])* 100
+
 ```
 
 
-Notice this plot is for cooling = No Central Air and finsqft = 1936.
-
-```{r}
-ggpredict(m4, terms = "fullbath[1:5]")
-```
-
-
-We can manually set the "conditional" values using the condition argument; notice the shape doesn't change, just the y-axis.
-
-```{r}
-ggpredict(m4, terms = "fullbath[1:5]", 
-          condition = list(cooling = "Central Air",
-                           finsqft = 2000)) %>% 
-  plot()
-```
-
-
-Many hypothesis tests are special cases of linear models
+## Many hypothesis tests are special cases of linear models
 
 ### ANOVA (one categorical predictor)
 
@@ -1523,13 +1402,65 @@ ggpredict(mod2, terms = "hsdistrict") %>% plot()
 
 We're done!
 
+## Appendix: Bootstrapping
+
+When calculating standard error, we can do something called _bootstrapping_ that treats the sample like the population. This is helpful for smaller data sets and for statistics that don't have easy to calculate theoretical standard errors.
+
+Let's take one sample of size 50:
+
+```{r}
+tv <- sample(d$totalvalue, 50)
+```
+
+Now let's resample from our sample _with replacement_ 1000 times, each time calculating the sample mean.
+
+```{r}
+boot_mean <- replicate(n = 1000, expr = {
+  tv_samp <- sample(tv, replace = TRUE)
+  mean(tv_samp)
+})
+```
+
+The standard deviation of our bootstrap means can serve as an estimate of _standard error_.
+
+```{r}
+sd(boot_mean)
+```
+
+Further we can get 95% confidence interval using 2.5% and 97.5% percentiles:
+
+```{r}
+quantile(boot_mean, probs = c(0.025, 0.975))
+```
+
+The `smean.cl.boot()` function from the {Hmisc} package does all this for us. If you run this too, you'll get a slightly different result.
+
+```{r}
+Hmisc::smean.cl.boot(tv)
+```
+
+
+Bootstrapping works well for creating confidence intervals for medians.
+
+```{r}
+boot_median <- replicate(n = 1000, expr = {
+  tv_samp <- sample(tv, replace = TRUE)
+  median(tv_samp)
+})
+
+# get 95% CI as 2.5 and 97.5 percentiles
+quantile(boot_median, probs = c(0.025, 0.975))
+```
+
+
 
 ## Appendix: bootstrap CI coverage 
 
 How often does a bootstrap CI capture the true mean?
 
 ```{r}
-# install the pbapply package so we can have progress bar
+# install the pbapply package so we can have a progress bar
+# "pb" stands for progress bar
 install.packages("pbapply")
 ci_test_boot <- pbapply::pbreplicate(n = 1000, expr = {
   boot_mean <- replicate(n = 1000, expr = {
@@ -1679,3 +1610,73 @@ wilcox.test(totalvalue ~ fp, data = d, conf.int = TRUE)
 The "difference in location" estimates _the median of the difference between a sample from homes with fireplaces and a sample from homes without fireplaces_.
 
 Again, given how much data we have and how big the difference is between mean totalvalues for homes without and with fireplaces, the p-value of whatever test we choose seems to be a formality not terribly informative.
+
+
+## Appendix: modeling non-linear effects
+
+In models `m1` and `m2` we assumed the effect of finsqft was _linear_ (ie, it had a constant slope). Going from 1500 - 1600 finsqft has the same effect on totalvalue as going from 2500 - 2600 finsqft.
+
+It may be more realistic to assume a _non-linear_ effect. This is, an effect that is not constant. Maybe adding more finsqft to a home has a more dramatic impact on totalvalue when the home has around 1500 finsqft versus a home that is 3500 finsqft.
+
+We can model non-linear effects using _natural splines_. The {splines} package that comes with R makes this relatively easy to implement. Splines are more sophisticated and better behaved than polynomials.
+
+The `ns(finsqft, df = 2)` code is similar to fitting a polynomial: x + x^2
+
+```{r}
+library(splines)
+m3 <- lm(log(totalvalue) ~ ns(finsqft, df = 2), data = d)
+summary(m3)
+```
+
+There is no interpretation of coefficients! The effect is not a simple coefficient. Before we worry about interpretation, is this a good model?
+
+```{r}
+plot(m3, which = 1)
+```
+
+Verdict: This seems like an improvement on model 2
+
+One way to compare models is via information criteria such as AIC (Akaike information criterion). AIC is a statistic designed to help us choose a model with the best predictive power among a group of models. The value of  AIC doesn't really have any interpretation. It's meant to be compared to other AIC values. The lower the AIC the better.  "df" is short for "degrees of freedom" and is the number of parameters estimated in the model. This includes the residual standard error.
+
+```{r}
+AIC(m2, m3)
+```
+
+We can only compare models with the _same response_ fit to the same data. That's why we can't include the first model, m1. It was fit to the raw data. The next two models, m2 and m3, were fit to log-transformed data.
+
+Let's visualize and use the model. We use the `ggpredict()` function from the {ggeffects} package to create predictions at various finsqft values and then use the {ggeffects} `plot()` method to visualize.
+
+```{r}
+ggpredict(m3, terms = "finsqft") %>% 
+  plot()
+```
+
+We can plot this line with the raw data by adding `add.data = TRUE` to `plot()`.The `dot.alpha = 0.1` argument changes the transparency of the dots
+
+```{r}
+ggpredict(m3, terms = "finsqft") %>% 
+  plot(add.data = TRUE, dot.alpha = 0.1)
+```
+
+
+Use `predict()` to make model predictions; need to exponentiate to get predicted value on original scale.
+
+```{r}
+predict(m3, newdata = data.frame(finsqft = 2500)) %>% exp()
+```
+
+Expected mean value of _homes_ with 2500 finsqft
+
+```{r}
+predict(m3, newdata = data.frame(finsqft = 2500), 
+        interval = "confidence") %>% exp()
+
+```
+
+Expected value of _a home_ with 2500 finsqft
+
+```{r}
+predict(m3, newdata = data.frame(finsqft = 2500), 
+        interval = "prediction") %>% exp()
+
+```
