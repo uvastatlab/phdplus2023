@@ -1,0 +1,103 @@
+Essential Statistics code along answers
+
+## CODE ALONG 1
+
+(1) Compare the absolute and relative proportions of homes with no central air in the Burley and Walton middle school districts.
+
+```{r}
+tp <- xtabs(~ msdistrict + cooling, data = d) %>% 
+  proportions(margin = 1) %>% 
+  round(3)
+tp
+
+# absolute
+tp["Burley", "No Central Air"] - tp["Walton", "No Central Air"]
+
+# relative
+tp["Burley", "No Central Air"]/tp["Walton", "No Central Air"]
+
+```
+
+
+(2) What proportion of homes are on more than 1 acre of land (lotsize) 
+
+```{r}
+mean(d$lotsize > 1)
+```
+
+
+(3) What proportion of homes are on more than 1 acre of land (lotsize) within each hsdistrict?
+
+```{r}
+xtabs(~ (lotsize > 1) + hsdistrict, data = d) %>% 
+  proportions(margin = 2) %>% 
+  round(2)
+```
+
+
+## CODE ALONG 2 
+
+(1) What is the 90th percentile of finsqft? In what percentile is 1500 finsqft?
+
+```{r}
+quantile(d$finsqft, probs = 0.90)
+Fsq <- ecdf(d$finsqft)
+Fsq(1500)
+```
+
+
+(2) what is the correlation between finsqft and totalrooms (presumably they're correlated)? Compare the correlation to a scatter plot between the two variables.
+
+```{r}
+cor(d$finsqft, d$totalrooms, use = "complete.obs")
+cor(d$finsqft, d$totalrooms, use = "complete.obs", method = "spearman")
+
+```
+
+
+```{r}
+ggplot(d) +
+  aes(x = totalrooms, y = finsqft) +
+  geom_point() +
+  geom_smooth() +
+  xlim(0, 20)
+
+```
+
+
+## CODE ALONG 3
+
+The following data contains a sample of captured kangaroo rats (Dipodomys merriami) that were used to estimate population size and density. <https://doi.org/10.5061/dryad.8pk0p2nns>
+
+```{r}
+rats <- read.csv("https://github.com/uvastatlab/phdplus2023/raw/main/data/parasite.csv")
+```
+
+(1) The variable "Mass.g" measures the mass of the rat in grams at the time of sampling. Calculate the mean and a 95% confidence interval for "mass"
+
+```{r}
+smean.cl.normal(rats$Mass.g)
+```
+
+(2) The variable "Pterygodermatites.dipodomis" indicates whether a sample was positive for the presence of Pterygodermatites dipodomis (1 = positive, 0 = negative). Calculate the proportion of rats with this parasite and a 95% confidence interval
+
+```{r}
+table(rats$Pterygodermatites.dipodomis)
+prop.test(x = 70, n = 131 + 70)
+```
+
+
+## CODE ALONG 4
+
+Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
+
+```{r}
+mod1 <- lm(log(totalvalue) ~ finsqft + hsdistrict + finsqft:hsdistrict, 
+           data = d)
+anova(mod1)
+
+ggpredict(mod1, terms = c("finsqft[1000:4000 by = 200]", "hsdistrict")) %>% 
+  plot()
+```
+
+

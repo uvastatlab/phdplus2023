@@ -23,16 +23,6 @@ d <- readRDS("../data/albemarle_homes_2023.rds")
 
 David Spiegelhalter, *The Art of Statistics*
 
-## Agenda
-
-In this session we explore using R to carry out and interpret basic statistical analyses and highlight potential sources of statistical errors.
-
--   Counts and Proportions
--   Summarizing Numeric Data
--   Uncertainty
--   Hypothesis testing 
--   Modeling
-
 ## Hold the bacon?
 
 In 2015 the World Health Organization (WHO) [announced](https://www.who.int/news-room/questions-and-answers/item/cancer-carcinogenicity-of-the-consumption-of-red-meat-and-processed-meat) that eating 50g of processed meat a day was associated with an increased risk of bowel cancer of 18%.
@@ -44,11 +34,11 @@ It depends. Is that an *absolute* increase or a *relative* increase?
 ## Absolute versus Relative
 
 -   Absolute is additive.
-    -   2% + 18% = 20% (increase 18%)
-    -   20% + -18% = 2% (decrease 18%)
+    -   2% + 18% = 20% (absolute increase of 18%)
+    -   20% + -18% = 2% (absolute increase of decrease 18%)
 -   Relative is multiplicative.
-    -   2% x (1 + 0.18) 1.18 = 2.36% (increase 18%)
-    -   20% x (1 - 0.18) 0.82 = 16.4% (decrease 18%)
+    -   2% x (1 + 0.18) 1.18 = 2.36% (relative increase of 18%)
+    -   20% x (1 - 0.18) 0.82 = 16.4% (relative decrease of 18%)
 
 The 18% increase mentioned in the WHO study is *relative*.
 
@@ -635,6 +625,7 @@ Many hypothesis tests are special cases of a linear model.
 - ANOVA: linear model with a categorical predictor
 - 2-way ANOVA: linear model with two categorical predictors
 - ANCOVA: linear model with a numeric predictor and categorical predictor
+- 2-sample proportion test: logistic regression with a binary predictor
 
 More information: [Common statistical tests are linear models (or: how to teach stats)](https://lindeloev.github.io/tests-as-linear/)
 
@@ -648,7 +639,9 @@ This presentation is woefully deficient and incomplete. Essential statistics can
 
 But hopefully you've learned enough to respect the variability and uncertainty in statistics, and to be cautious and modest when drawing conclusions from statistics. 
 
-> it is not necessary to remember all concepts and conversions, only to remember when to stop and enlist help. -Elisabeth Ribbans
+> it is not necessary to remember all concepts and conversions, only to remember when to stop and enlist help.
+
+Elisabeth Ribbans, [Why numbers matter more than ever](https://www.theguardian.com/commentisfree/2022/dec/29/on-the-sixth-day-of-christmas-or-was-it-the-seventh-why-numbers-matter-more-than-ever)
 
 
 ## References

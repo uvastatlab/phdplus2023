@@ -1228,17 +1228,6 @@ Clay Ford, UVA Library
 </blockquote>
 <p>David Spiegelhalter, <em>The Art of Statistics</em></p>
 </section>
-<section id="agenda" class="slide level2">
-<h2>Agenda</h2>
-<p>In this session we explore using R to carry out and interpret basic statistical analyses and highlight potential sources of statistical errors.</p>
-<ul>
-<li>Counts and Proportions</li>
-<li>Summarizing Numeric Data</li>
-<li>Uncertainty</li>
-<li>Hypothesis testing</li>
-<li>Modeling</li>
-</ul>
-</section>
 <section id="hold-the-bacon" class="slide level2">
 <h2>Hold the bacon?</h2>
 <p>In 2015 the World Health Organization (WHO) <a href="https://www.who.int/news-room/questions-and-answers/item/cancer-carcinogenicity-of-the-consumption-of-red-meat-and-processed-meat">announced</a> that eating 50g of processed meat a day was associated with an increased risk of bowel cancer of 18%.</p>
@@ -1250,13 +1239,13 @@ Clay Ford, UVA Library
 <ul>
 <li>Absolute is additive.
 <ul>
-<li>2% + 18% = 20% (increase 18%)</li>
-<li>20% + -18% = 2% (decrease 18%)</li>
+<li>2% + 18% = 20% (absolute increase of 18%)</li>
+<li>20% + -18% = 2% (absolute increase of decrease 18%)</li>
 </ul></li>
 <li>Relative is multiplicative.
 <ul>
-<li>2% x (1 + 0.18) 1.18 = 2.36% (increase 18%)</li>
-<li>20% x (1 - 0.18) 0.82 = 16.4% (decrease 18%)</li>
+<li>2% x (1 + 0.18) 1.18 = 2.36% (relative increase of 18%)</li>
+<li>20% x (1 - 0.18) 0.82 = 16.4% (relative decrease of 18%)</li>
 </ul></li>
 </ul>
 <p>The 18% increase mentioned in the WHO study is <em>relative</em>.</p>
@@ -1730,7 +1719,7 @@ The 2014 percentage increased by 15.56%</p>
 <p>Hypothesis testing, p-values, and confidence intervals assume there is a <em>fixed but unknown true value</em> we’re trying to estimate.</p>
 <p>This is often called the <strong>Frequentist</strong> philosophy because p-values and confidence intervals summarize expected behavior in the <em>long run</em>.</p>
 <p><strong>Example</strong>: there is a true mean weight of student backpacks at UVA. Our sample and confidence interval is our attempt to estimate the range of the true mean. Repeated samples and confidence intervals will capture true mean 95% of the time.</p>
-<p><strong>Example</strong>: If painting cows like zebras has no effect on number of fly bites, we would expect to see the type of data we collected, or more extreme data, 0.0001 of the time.</p>
+<p><strong>Example</strong>: If painting cows like zebras has no effect on number of fly bites, we would expect to see the type of data we collected, or more extreme data, less than 0.0001 of the time.</p>
 </section>
 <section id="the-bayesian-view" class="slide level2">
 <h2>The Bayesian view</h2>
@@ -1895,6 +1884,7 @@ The 2014 percentage increased by 15.56%</p>
 <li>ANOVA: linear model with a categorical predictor</li>
 <li>2-way ANOVA: linear model with two categorical predictors</li>
 <li>ANCOVA: linear model with a numeric predictor and categorical predictor</li>
+<li>2-sample proportion test: logistic regression with a binary predictor</li>
 </ul>
 <p>More information: <a href="https://lindeloev.github.io/tests-as-linear/">Common statistical tests are linear models (or: how to teach stats)</a></p>
 <p>And of course all of this can be analyzed using Bayesian statistics.</p>
@@ -1905,8 +1895,9 @@ The 2014 percentage increased by 15.56%</p>
 <p>This presentation is woefully deficient and incomplete. Essential statistics cannot be taught and learned in 2 hours.</p>
 <p>But hopefully you’ve learned enough to respect the variability and uncertainty in statistics, and to be cautious and modest when drawing conclusions from statistics.</p>
 <blockquote>
-<p>it is not necessary to remember all concepts and conversions, only to remember when to stop and enlist help. -Elisabeth Ribbans</p>
+<p>it is not necessary to remember all concepts and conversions, only to remember when to stop and enlist help.</p>
 </blockquote>
+<p>Elisabeth Ribbans, <a href="https://www.theguardian.com/commentisfree/2022/dec/29/on-the-sixth-day-of-christmas-or-was-it-the-seventh-why-numbers-matter-more-than-ever">Why numbers matter more than ever</a></p>
 </section>
 <section id="references" class="slide level2">
 <h2>References</h2>

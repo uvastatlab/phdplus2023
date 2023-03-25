@@ -12,7 +12,8 @@ Load packages we'll use today. In the first line, we only load two functions fro
 
 ```{r}
 library(Hmisc, include.only = c("smean.cl.normal", "smean.cl.boot"))
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
 library(ggeffects)
 ```
 
@@ -343,37 +344,18 @@ The tidyverse way for counts and proportions requires more work and returns data
 
 ## CODE ALONG 1
 
+REMINDER: Add a new R code chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I* (Win/Linux) or *Cmd+Option+I* (Mac). 
+
 (1) Compare the absolute and relative proportions of homes with no central air in the Burley and Walton middle school districts.
-
-```{r}
-tp <- xtabs(~ msdistrict + cooling, data = d) %>% 
-  proportions(margin = 1) %>% 
-  round(3)
-tp
-
-# absolute
-tp["Burley", "No Central Air"] - tp["Walton", "No Central Air"]
-
-# relative
-tp["Burley", "No Central Air"]/tp["Walton", "No Central Air"]
-
-```
 
 
 (2) What proportion of homes are on more than 1 acre of land (lotsize) 
 
-```{r}
-mean(d$lotsize > 1)
-```
 
 
 (3) What proportion of homes are on more than 1 acre of land (lotsize) within each hsdistrict?
 
-```{r}
-xtabs(~ (lotsize > 1) + hsdistrict, data = d) %>% 
-  proportions(margin = 2) %>% 
-  round(2)
-```
+
 
 Back to the slides!
 
@@ -495,11 +477,6 @@ We often need to calculate summaries by groups. For example, what is the mean to
 The `aggregate()` function can help us do this. It returns a data frame and uses the same formula syntax as `xtabs()`. Place the numeric variable on the left hand side. The last argument is the function we wish to use to summarize the numeric data in each group.
 
 ```{r}
-# mean totalvalue by hsdistrict
-aggregate(totalvalue ~ hsdistrict, data = d, mean)
-```
-
-```{r}
 # median totalvalue by hsdistrict
 aggregate(totalvalue ~ hsdistrict, data = d, median)
 ```
@@ -519,10 +496,6 @@ aggregate(totalvalue ~ hsdistrict, data = d, function(x)mean(x > 1e6))
 The `tapply()` returns a vector or list and requires vectors.
 
 `tapply(numeric variable, grouping variable, function)`
-
-```{r}
-tapply(d$totalvalue, d$hsdistrict, mean)
-```
 
 ```{r}
 tapply(d$totalvalue, d$hsdistrict, median)
@@ -763,41 +736,11 @@ exp(mean(log(d$totalvalue)))
 
 ## CODE ALONG 2 
 
-(1) summarize finsqft numerically and visually
-
-```{r}
-summary(d$finsqft)
-hist(d$finsqft)
-```
-
-
-(2) What is the 90th percentile of finsqft? In what percentile is 1500 finsqft?
-
-```{r}
-quantile(d$finsqft, probs = 0.90)
-Fsq <- ecdf(d$finsqft)
-Fsq(1500)
-```
+(1) What is the 90th percentile of finsqft? In what percentile is 1500 finsqft?
 
 
 
-(3) what is the correlation between finsqft and totalrooms (presumably they're correlated)? Compare the correlation to a scatter plot between the two variables.
-
-```{r}
-cor(d$finsqft, d$totalrooms, use = "complete.obs")
-cor(d$finsqft, d$totalrooms, use = "complete.obs", method = "spearman")
-
-```
-
-
-```{r}
-ggplot(d) +
-  aes(x = totalrooms, y = finsqft) +
-  geom_point() +
-  geom_smooth() +
-  xlim(0, 20)
-
-```
+(2) what is the correlation between finsqft and totalrooms (presumably they're correlated)? Compare the correlation to a scatter plot between the two variables.
 
 
 Back to the presentation!
@@ -1028,18 +971,11 @@ The following data contains a sample of captured kangaroo rats (Dipodomys merria
 rats <- read.csv("https://github.com/uvastatlab/phdplus2023/raw/main/data/parasite.csv")
 ```
 
-- The variable "Mass.g" measures the mass of the rat in grams at the time of sampling. Calculate the mean and a 95% confidence interval for "mass"
+(1) The variable "Mass.g" measures the mass of the rat in grams at the time of sampling. Calculate the mean and a 95% confidence interval for "mass"
 
-```{r}
-smean.cl.normal(rats$Mass.g)
-```
 
-- The variable "Pterygodermatites.dipodomis" indicates whether a sample was positive for the presence of Pterygodermatites dipodomis (1 = positive, 0 = negative). Calculate the proportion of rats with this parasite and a 95% confidence interval
+(2) The variable "Pterygodermatites.dipodomis" indicates whether a sample was positive for the presence of Pterygodermatites dipodomis (1 = positive, 0 = negative). Calculate the proportion of rats with this parasite and a 95% confidence interval
 
-```{r}
-table(rats$Pterygodermatites.dipodomis)
-prop.test(x = 70, n = 131 + 70)
-```
 
 Back to the slide deck! 
 
@@ -1343,32 +1279,61 @@ sum(coef(m3)[2] + coef(m3)[4])* 100
 
 ### ANOVA (one categorical predictor)
 
+We can carry out ANOVA using `aov()`...
+
+```{r}
+aov1 <- aov(totalvalue ~ hsdistrict, data = d)
+summary(aov1)
+```
+
+Or fit a linear model using `lm()`. (The `aov()` function uses `lm()` under the hood.)
+
 ```{r}
 m5 <- lm(totalvalue ~ hsdistrict, data = d)
 anova(m5)
-ggpredict(m5, terms = "hsdistrict") %>% plot()
-
 ```
 
 
 ### t-test (one binary predictor)
 
+We can do a t-test with `t.test()`...
+
+```{r}
+t.test(log(totalvalue) ~ cooling, data = d, var.equal = TRUE)
+```
+
+Or fit a linear model using `lm()`
+
 ```{r}
 m6 <- lm(log(totalvalue) ~ cooling, data = d)
 summary(m6)
-ggpredict(m6, terms = "cooling") %>% plot()
-
 ```
 
 
 ### 2-sample proportion test (logistic regression)
 
-```{r}
-m7 <- glm(fp ~ hsdistrict, data = d, family = binomial)
-summary(m7)
-ggpredict(m7, terms = "hsdistrict") %>% 
-  plot()
+We can compare two proportions using `prop.test()`...
 
+```{r}
+xtabs(~ fp + remodel, data = d) %>% 
+  addmargins()
+```
+
+```{r}
+prop.test(x = c(21740, 1948), n = c(29870, 2771), correct = FALSE)
+```
+
+Or fit a logistic regression model using `glm()`
+
+```{r}
+m7 <- glm(fp ~ remodel, data = d, family = binomial)
+summary(m7)
+```
+
+```{r}
+# proportions
+predict(m7, newdata = data.frame(remodel = c(0,1)), 
+        type = "response")
 ```
 
 
@@ -1376,7 +1341,7 @@ There are many big books on linear modeling. This was not comprehensive!
 
 ## CODE ALONG 4
 
-(1) Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
+Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
 
 ```{r}
 mod1 <- lm(log(totalvalue) ~ finsqft + hsdistrict + finsqft:hsdistrict, 
@@ -1387,17 +1352,6 @@ ggpredict(mod1, terms = c("finsqft[1000:4000 by = 200]", "hsdistrict")) %>%
   plot()
 ```
 
-
-
-(2) Model "remodel" as a function of hsdistrict using `glm()`. Name the model mod2. In other words, model the probability a home has been remodeled based on the high school district it is located in. Visualize the model.
-
-```{r}
-mod2 <- glm(remodel ~ hsdistrict, data = d, family = binomial)
-summary(mod2)
-ggpredict(mod2, terms = "hsdistrict")
-ggpredict(mod2, terms = "hsdistrict") %>% plot()
-
-```
 
 
 We're done!
