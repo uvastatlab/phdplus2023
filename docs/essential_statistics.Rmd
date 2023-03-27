@@ -7,7 +7,6 @@ editor_options:
   chunk_output_type: inline
 ---
 
-
 Load packages we'll use today. In the first line, we only load two functions from the Hmisc package.
 
 ```{r}
@@ -100,7 +99,7 @@ tab[1,]
 tab[,1]
 ```
 
-Adding `drop=FALSE` preserves table structure
+Adding `drop=FALSE` preserves structure of table for viewing purposes.
 
 ```{r}
 # row 1
@@ -251,6 +250,14 @@ tab2 %>%
   round(2)
 ```
 
+Can also use names of dimensions if you find that easier.
+
+```{r}
+tab2 %>% 
+  proportions(margin = c("hsdistrict", "cooling")) %>% 
+  round(2)
+```
+
 
 Within each cooling strata, for homes without and with fireplaces, what proportion are in each high school district? Set `margin = c(2, 3)` (ie, down columns, within each strata)
 
@@ -260,7 +267,8 @@ tab2 %>%
   round(2)
 ```
 
-For homes with central air, Monticello has 0.32 without a fireplace versus 0.19 for Albemarle. 
+
+Let's look again at what proportion of homes have and do not have fireplaces within each hsidstrict, by cooling status. Notice that for homes with central air, Monticello has 0.32 without a fireplace versus 0.19 for Albemarle. 
 
 ```{r}
 tab2 %>% 
@@ -349,11 +357,7 @@ REMINDER: Add a new R code chunk by clicking the *Insert Chunk* button on the to
 (1) Compare the absolute and relative proportions of homes with no central air in the Burley and Walton middle school districts.
 
 
-(2) What proportion of homes are on more than 1 acre of land (lotsize) 
-
-
-
-(3) What proportion of homes are on more than 1 acre of land (lotsize) within each hsdistrict?
+(2) What proportion of homes are on more than 1 acre of land (lotsize) within each hsdistrict?
 
 
 
@@ -416,7 +420,7 @@ Discrete data may be better visualized with a bar plot, created by first tabling
 table(d$bedroom) %>% plot()
 ```
 
-ggplot makes it pretty easy to add axis tick mark for 11
+ggplot makes it pretty easy to add axis tick mark for 11.
 
 ```{r}
 ggplot(d) +
@@ -457,13 +461,26 @@ Fn <- ecdf(d$totalvalue)
 Fn(500000) 
 ```
 
-What percentile is a $1,000,000 home in?
+What quantile is a $1,000,000 home in?
 
 ```{r}
 Fn(1e6)   
 ```
 
-We can also plot the ECD
+It's worth noting this is the same as finding the proportion of homes with total value less than or equal to one million.
+
+```{r}
+mean(d$totalvalue <= 1e6)
+```
+
+But a ECDF function allows us to calculate lots of quantiles at once.
+
+```{r}
+# From $100,000 to $1,000,000 in steps of $100,000
+Fn(seq(1e5,1e6,1e5))
+```
+
+We can also plot the ECD.
 
 ```{r}
 plot(Fn)
@@ -481,11 +498,6 @@ The `aggregate()` function can help us do this. It returns a data frame and uses
 aggregate(totalvalue ~ hsdistrict, data = d, median)
 ```
 
-```{r}
-# IQR for totalvalue by hsdistrict
-aggregate(totalvalue ~ hsdistrict, data = d, IQR)
-```
-
 We can also define our own functions. Below we calculate the proportion of homes valued at over 1 million dollars in each high school district.
 
 ```{r}
@@ -495,14 +507,10 @@ aggregate(totalvalue ~ hsdistrict, data = d, function(x)mean(x > 1e6))
 
 The `tapply()` returns a vector or list and requires vectors.
 
-`tapply(numeric variable, grouping variable, function)`
+`tapply(numeric variable, grouping variable(s), function)`
 
 ```{r}
 tapply(d$totalvalue, d$hsdistrict, median)
-```
-
-```{r}
-tapply(d$totalvalue, d$hsdistrict, IQR)
 ```
 
 `tapply()` is ideal for use with functions that return _more than one value_. For example, using the `summary()` for totalvalue within each high school district.
@@ -510,11 +518,6 @@ tapply(d$totalvalue, d$hsdistrict, IQR)
 ```{r}
 tapply(d$totalvalue, d$hsdistrict, summary)  # list
 ```
-
-```{r}
-tapply(d$totalvalue, d$hsdistrict, quantile)  # list
-```
-
 
 We can also include 2 or more groups with `tapply()` and `aggregate()`
 
@@ -543,51 +546,9 @@ ggplot(med_df) +
   aes(x = hsdistrict, y = totalvalue, color = cooling) +
   geom_point(size = 3) +
   scale_y_continuous(labels = scales::dollar) +
-  guides(color = guide_legend("Cooling Status", reverse = TRUE)) +
   labs(title = 'Median home values by HS District and Central Air status',
        x = 'High School District', y = 'Total Home Value')
 
-```
-
-Some R users prefer using tidyverse functions for this type of summary, but notice the missing values are included by default in the legend.
-
-```{r}
-med_df2 <- d %>% 
-  group_by(hsdistrict, cooling) %>% 
-  summarize(totalvalue = median(totalvalue))
-
-ggplot(med_df2) +
-  aes(x = hsdistrict, y = totalvalue, color = cooling) +
-  geom_point(size = 3) +
-  scale_y_continuous(labels = scales::dollar) +
-  labs(title = 'Median home values by HS District and Central Air status')
-```
-
-If we want to drop the NAs, we can add `scale_color_discrete(na.translate = FALSE)`
-
-```{r}
-ggplot(med_df2) +
-  aes(x = hsdistrict, y = totalvalue, color = cooling) +
-  geom_point(size = 3) +
-  scale_y_continuous(labels = scales::dollar) +
-  scale_color_discrete(na.translate = FALSE) +
-  labs(title = 'Median home values by HS District and Central Air status')
-  
-```
-
-We can also filter them out using `!is.na()`. The means filter out the records that are NOT missing a value for cooling.
-
-```{r}
-med_df2 <- d %>% 
-  filter(!is.na(cooling)) %>% 
-  group_by(hsdistrict, cooling) %>% 
-  summarize(totalvalue = median(totalvalue))
-
-ggplot(med_df2) +
-  aes(x = hsdistrict, y = totalvalue, color = cooling) +
-  geom_point(size = 3, na.translate = FALSE) +
-  scale_y_continuous(labels = scales::dollar) +
-  labs(title = 'Median home values by HS District and Central Air status')
 ```
 
 
@@ -689,7 +650,6 @@ d %>%
 
 
 ### Log transformations
-
 
 The idea: Take positive, skewed data and hopefully make it more symmetric.
 
@@ -1152,7 +1112,7 @@ The dotted line is 0. Values above the line have higher totalvalues than the mod
 Verdict: Not great, but perhaps somewhat useful. Predicted values seem to get worse as the predicted values get bigger. 
 
 
-#### SUMMARY OVERVIEW
+#### Summary Overview
 
 ```{r}
 summary(m1)
@@ -1343,18 +1303,56 @@ There are many big books on linear modeling. This was not comprehensive!
 
 Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
 
-```{r}
-mod1 <- lm(log(totalvalue) ~ finsqft + hsdistrict + finsqft:hsdistrict, 
-           data = d)
-anova(mod1)
 
-ggpredict(mod1, terms = c("finsqft[1000:4000 by = 200]", "hsdistrict")) %>% 
-  plot()
+We're done!
+
+Lots of material was cut for time, but it's included below if you're interested.
+
+
+## Appendix: tidyverse grouped summaries
+
+Some R users prefer using tidyverse functions for grouped summaries, but notice the missing values are included by default in the legend.
+
+```{r}
+med_df2 <- d %>% 
+  group_by(hsdistrict, cooling) %>% 
+  summarize(totalvalue = median(totalvalue))
+
+ggplot(med_df2) +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = 'Median home values by HS District and Central Air status')
+```
+
+If we want to drop the NAs, we can add `scale_color_discrete(na.translate = FALSE)`
+
+```{r}
+ggplot(med_df2) +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_discrete(na.translate = FALSE) +
+  labs(title = 'Median home values by HS District and Central Air status')
+  
+```
+
+We can also filter them out using `!is.na()`. The means filter out the records that are NOT missing a value for cooling.
+
+```{r}
+med_df2 <- d %>% 
+  filter(!is.na(cooling)) %>% 
+  group_by(hsdistrict, cooling) %>% 
+  summarize(totalvalue = median(totalvalue))
+
+ggplot(med_df2) +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = 'Median home values by HS District and Central Air status')
 ```
 
 
-
-We're done!
 
 ## Appendix: Bootstrapping
 
@@ -1634,3 +1632,39 @@ predict(m3, newdata = data.frame(finsqft = 2500),
         interval = "prediction") %>% exp()
 
 ```
+
+
+## Appendix: Example of Bayesian analysis
+
+The {rstanarm} package provides a nice interface to the powerful Stan programming language for fitting Bayesian models. The formula syntax is the same as what `lm()` and `glm()` uses. The only difference is we need to specify _prior distributions_ for our parameters.
+
+### Basic t-test type of analysis
+
+There is no 'hypothesis testing' in Bayesian statistics. So to do something like a t-test, you instead you propose a prior distribution on the difference in means, and then get a posterior distribution after fitting a model. Recall above that a t-test is a special case of a linear model with a single binary predictor. We can use this insight to fit a Bayesian model for totalvalue as a function cooling.
+
+We use the `prior_*` arguments to set the prior distributions. Notice we have to set separate priors for the intercept and "aux" parameters. The "aux" parameter is the "residual standard error". The `prior` argument is for the slope parameter in the model, which corresponds to the difference in means. 
+
+The `normal()` and `exponential()` functions are provided by the rstanarm package. `location` refers to "mean" and `scale` refers to "standard deviation". I set the location to 0 and the scale to 1e6 in the `normal` priors. These are "weakly informative", which is to say they basically rule out implausible values. Notice the model takes several seconds to run. It uses a sampling algorithm instead of a closed-form mathematical formula.
+
+```{r}
+install.packages("rstanarm")
+library(rstanarm)
+bm1 <- stan_glm(totalvalue ~ cooling, data = d, 
+                prior_intercept = normal(location = 0, scale = 1e6),
+                prior_aux = exponential(rate = 1),
+                prior = normal(location = 0, scale = 1e6))
+```
+Use the `summary()` function to see the model results. The main result is three _posterior distributions_ for the parameters. There are no test statistics or p-values.
+
+```{r}
+summary(bm1)
+```
+
+
+Use the `posterior_interval()` function to get 95% credible intervals on the parameters. When I ran this I got a result that said there's about 0.95 probability that the difference in totalvalue between homes with and without cooling is between 222,824 and 232,474.
+
+```{r}
+posterior_interval(bm1)
+```
+
+See the vignettes that accomplany the {rstanarm} package for more details and examples of Bayesian data analysis.

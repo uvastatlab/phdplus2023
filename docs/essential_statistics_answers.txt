@@ -19,14 +19,7 @@ tp["Burley", "No Central Air"]/tp["Walton", "No Central Air"]
 ```
 
 
-(2) What proportion of homes are on more than 1 acre of land (lotsize) 
-
-```{r}
-mean(d$lotsize > 1)
-```
-
-
-(3) What proportion of homes are on more than 1 acre of land (lotsize) within each hsdistrict?
+(2) What proportion of homes are on more than 1 acre of land (lotsize) within each hsdistrict?
 
 ```{r}
 xtabs(~ (lotsize > 1) + hsdistrict, data = d) %>% 
