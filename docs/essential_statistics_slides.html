@@ -1240,7 +1240,7 @@ Clay Ford, UVA Library
 <li>Absolute is additive.
 <ul>
 <li>2% + 18% = 20% (absolute increase of 18%)</li>
-<li>20% + -18% = 2% (absolute increase of decrease 18%)</li>
+<li>20% + -18% = 2% (absolute decrease 18%)</li>
 </ul></li>
 <li>Relative is multiplicative.
 <ul>
@@ -1249,7 +1249,7 @@ Clay Ford, UVA Library
 </ul></li>
 </ul>
 <p>The 18% increase mentioned in the WHO study is <em>relative</em>.</p>
-<p>If the risk (probability) of bowel cancer without consuming 50g of processed meat per day is 0.001, then an 18% increase raises the risk to 0.001 x 1.18 = 0.00118.</p>
+<p>If the risk (probability) of bowel cancer without consuming 50g of processed meat per day is 0.001, then a relative increase of 18% raises the risk to 0.001 x 1.18 = 0.00118.</p>
 <div class="callout callout-important callout-captioned callout-style-default">
 <div class="callout-body">
 <div class="callout-caption">
@@ -1293,7 +1293,7 @@ The 2014 percentage increased by 15.56%</p>
 <p><strong>Important</strong></p>
 </div>
 <div class="callout-content">
-<p>Beware of confusing proportions with percents. Example: confusing a percent risk of 0.5% as a proportion (probability) of 0.5 (instead of 0.005)</p>
+<p>Beware of importing data with percents into R. The percent symbols can result in numbers being treated as character data.</p>
 </div>
 </div>
 </div>
@@ -1306,7 +1306,7 @@ The 2014 percentage increased by 15.56%</p>
 <p><strong>Important</strong></p>
 </div>
 <div class="callout-content">
-<p>Beware of importing data with percents into R. The percent symbols can result in numbers being treated as character data.</p>
+<p>Beware of confusing proportions with percents. Example: confusing a percent risk of 0.5% as a proportion (probability) of 0.5 (instead of 0.005)</p>
 </div>
 </div>
 </div>
@@ -1674,7 +1674,7 @@ The 2014 percentage increased by 15.56%</p>
 <h2>Hypothesis testing and p-values</h2>
 <p>Hypothesis testing estimates the probability of obtaining the data we collected, or more extreme data, under the assumption of some hypothesis (usually a null/no effect hypothesis).</p>
 <p>What is the probability a cow painted like a zebra would have 55 <em>or fewer</em> fly bites than an unpainted cow which had 128, <em>assuming the paint job had no effect</em>? The authors state p &lt; 0.0001.</p>
-<p>Historically, p-values &lt; 0.05 have been interpreted as “statistically significant”, though many prominent statisticians are <a href="https://www.tandfonline.com/doi/full/10.1080/00031305.2019.1583913">now calling to abolish that threshold and the phrase “statistically significant”</a>.</p>
+<p>Historically, p-values &lt; 0.05 have been interpreted as “statistically significant”, though many statisticians are <a href="https://www.tandfonline.com/doi/full/10.1080/00031305.2019.1583913">now calling to abolish that threshold and the phrase “statistically significant”</a>.</p>
 <p>Nevertheless, p-values have been published, and will likely continue to be published, so it pays to know what they mean.</p>
 <div class="callout callout-tip callout-captioned callout-style-default">
 <div class="callout-body">
@@ -1809,9 +1809,9 @@ The 2014 percentage increased by 15.56%</p>
 <h2>Linear Models</h2>
 <p>A <em>linear model</em> allows us to estimate expected values conditional on features or predictors.</p>
 <p>A linear model is a function of predictors. For example, here’s a simple model:</p>
-<p><span class="math display">\[\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}\]</span></p>
+<p><span class="math display">\[\text{est total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}\]</span></p>
 <p>This model estimates the mean expected value of homes with 2000 finished square feet and central air (cooling = 1) to be $352,235 :</p>
-<p><span class="math display">\[\text{total value} = 80,839 + 111(2000) + 49,396(1) = \$ 352,235\]</span></p>
+<p><span class="math display">\[\text{est total value} = 80,839 + 111(2000) + 49,396(1) = \$ 352,235\]</span></p>
 <p>It says each additional finished square foot adds $111 to the expected value of a home. It also says a home with central air is expected to be worth almost $50,000 more than a home without central air.</p>
 <p>If we were interested in finsqft, we might say we have adjusted for the potential confounder cooling.</p>
 </section>
@@ -1825,7 +1825,7 @@ The 2014 percentage increased by 15.56%</p>
 <section id="model-uncertainty" class="slide level2">
 <h2>Model uncertainty</h2>
 <p>Consider this model again:</p>
-<p><span class="math display">\[\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}\]</span></p>
+<p><span class="math display">\[\text{est total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}\]</span></p>
 <ul>
 <li>The model may be bad. (Wrong predictors, left out predictors, not additive.)</li>
 <li>The <em>coefficients</em> (80839, 111 and 49396) are just estimates. They’re uncertain.</li>
@@ -1836,7 +1836,7 @@ The 2014 percentage increased by 15.56%</p>
 <section id="model-assumptions" class="slide level2">
 <h2>Model assumptions</h2>
 <p>Our model is approximate, not perfect. It’s always going to be off by some random amount. Let’s update it as follows:</p>
-<p><span class="math display">\[\text{total value} = \color{blue}{80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}} + \color{red}{\text{ERROR}}\]</span></p>
+<p><span class="math display">\[\text{real total value} = \color{blue}{80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}} + \color{red}{\text{ERROR}}\]</span></p>
 <p>Our model has two parts:</p>
 <ol type="1">
 <li>The <span style="color:blue;">fixed</span> part</li>

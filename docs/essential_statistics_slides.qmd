@@ -35,14 +35,14 @@ It depends. Is that an *absolute* increase or a *relative* increase?
 
 -   Absolute is additive.
     -   2% + 18% = 20% (absolute increase of 18%)
-    -   20% + -18% = 2% (absolute increase of decrease 18%)
+    -   20% + -18% = 2% (absolute decrease 18%)
 -   Relative is multiplicative.
     -   2% x (1 + 0.18) 1.18 = 2.36% (relative increase of 18%)
     -   20% x (1 - 0.18) 0.82 = 16.4% (relative decrease of 18%)
 
 The 18% increase mentioned in the WHO study is *relative*.
 
-If the risk (probability) of bowel cancer without consuming 50g of processed meat per day is 0.001, then an 18% increase raises the risk to 0.001 x 1.18 = 0.00118.
+If the risk (probability) of bowel cancer without consuming 50g of processed meat per day is 0.001, then a relative increase of 18% raises the risk to 0.001 x 1.18 = 0.00118.
 
 ::: callout-important
 Interpreting a relative increase as absolute can make it seem more important than it really is.
@@ -74,12 +74,13 @@ Percents are proportions multiplied by 100 with a % sign appended to the value. 
 Most any statistical program is going to return *proportions*.
 
 ::: callout-important
-Beware of confusing proportions with percents. Example: confusing a percent risk of 0.5% as a proportion (probability) of 0.5 (instead of 0.005)
+Beware of importing data with percents into R. The percent symbols can result in numbers being treated as character data.
 :::
 
 ::: callout-important
-Beware of importing data with percents into R. The percent symbols can result in numbers being treated as character data.
+Beware of confusing proportions with percents. Example: confusing a percent risk of 0.5% as a proportion (probability) of 0.5 (instead of 0.005)
 :::
+
 
 ## Don't forget the denominator
 
@@ -424,7 +425,7 @@ Hypothesis testing estimates the probability of obtaining the data we collected,
 
 What is the probability a cow painted like a zebra would have 55 _or fewer_ fly bites than an unpainted cow which had 128, _assuming the paint job had no effect_? The authors state p < 0.0001.
 
-Historically, p-values < 0.05 have been interpreted as "statistically significant", though many prominent statisticians are [now calling to abolish that threshold and the phrase "statistically significant"](https://www.tandfonline.com/doi/full/10.1080/00031305.2019.1583913).
+Historically, p-values < 0.05 have been interpreted as "statistically significant", though many statisticians are [now calling to abolish that threshold and the phrase "statistically significant"](https://www.tandfonline.com/doi/full/10.1080/00031305.2019.1583913).
 
 Nevertheless, p-values have been published, and will likely continue to be published, so it pays to know what they mean.
 
@@ -548,12 +549,12 @@ A _linear model_ allows us to estimate expected values conditional on features o
 
 A linear model is a function of predictors. For example, here's a simple model:
 
-$$\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$ 
+$$\text{est total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$ 
 
 
 This model estimates the mean expected value of homes with 2000 finished square feet and central air (cooling = 1) to be \$352,235 :
 
-$$\text{total value} = 80,839 + 111(2000) + 49,396(1) = \$ 352,235$$ 
+$$\text{est total value} = 80,839 + 111(2000) + 49,396(1) = \$ 352,235$$ 
 
 It says each additional finished square foot adds \$111 to the expected value of a home. It also says a home with central air is expected to be worth almost \$50,000 more than a home without central air. 
 
@@ -573,7 +574,7 @@ This is also referred to as _Multiple Regression_ or _Regression Modeling_.
 
 Consider this model again:
 
-$$\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$ 
+$$\text{est total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$ 
 
 - The model may be bad. (Wrong predictors, left out predictors, not additive.)
 - The _coefficients_ (80839, 111 and 49396) are just estimates. They're uncertain.
@@ -584,7 +585,7 @@ $$\text{total value} = 80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}$$
 
 Our model is approximate, not perfect. It's always going to be off by some random amount. Let's update it as follows:
 
-$$\text{total value} = \color{blue}{80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}} + \color{red}{\text{ERROR}}$$ 
+$$\text{real total value} = \color{blue}{80,839 + 111\text{ finsqft} + 49,396 \text{ cooling}} + \color{red}{\text{ERROR}}$$ 
 
 Our model has two parts:
 

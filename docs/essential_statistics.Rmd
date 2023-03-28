@@ -7,13 +7,19 @@ editor_options:
   chunk_output_type: inline
 ---
 
-Load packages we'll use today. In the first line, we only load two functions from the Hmisc package.
+Load packages we'll use today. 
 
 ```{r}
-library(Hmisc, include.only = c("smean.cl.normal", "smean.cl.boot"))
 library(dplyr)
 library(ggplot2)
 library(ggeffects)
+```
+
+We'll also use functions in other packages occasionally. When we do we will access them using a double colon operator (::) instead of loading them with `library()`. For example, to use the `parse_number()` function from the {readr} package without loading it:
+
+```{r}
+x <- c("$2,345.23", "$2,232.98", "$345.87")
+readr::parse_number(x)
 ```
 
 Read in the homes data from GitHub. The data is saved as an RDS file, which is the format for saving R objects. We need to use the `readRDS()` to read in the file. Notice we have to assign the result a name. I chose "d" because it's easy to type. Since the RDS file is on GitHub and accessed through a URL, we need to use the `url()` function to open the connection.
@@ -43,8 +49,8 @@ table(d$hsdistrict) %>% proportions()
 We can also use `xtabs()` function that allows us to use R's formula syntax. The syntax `~ hsdistrict` means count up by hsdistrict. Notice it includes the name of the variable in the output.
 
 ```{r}
-xtabs( ~ hsdistrict, data = d)
-xtabs( ~ hsdistrict, data = d) %>% proportions()
+xtabs(~ hsdistrict, data = d)
+xtabs(~ hsdistrict, data = d) %>% proportions()
 ```
 
 
@@ -102,19 +108,8 @@ tab[,1]
 Adding `drop=FALSE` preserves structure of table for viewing purposes.
 
 ```{r}
-# row 1
-tab[1, , drop = FALSE]
-```
-
-
-```{r}
 # column 1
 tab[, 1, drop = FALSE]
-```
-
-```{r}
-# row 1, column 2
-tab[1, 2, drop = FALSE]
 ```
 
 We can also use row and column names to extract rows/columns/cells
@@ -247,7 +242,7 @@ Within each cooling strata, for each high school district, what proportion of ho
 ```{r}
 tab2 %>% 
   proportions(margin = c(1, 3)) %>% 
-  round(2)
+  round(3)
 ```
 
 Can also use names of dimensions if you find that easier.
@@ -255,7 +250,7 @@ Can also use names of dimensions if you find that easier.
 ```{r}
 tab2 %>% 
   proportions(margin = c("hsdistrict", "cooling")) %>% 
-  round(2)
+  round(3)
 ```
 
 
@@ -264,26 +259,26 @@ Within each cooling strata, for homes without and with fireplaces, what proporti
 ```{r}
 tab2 %>% 
   proportions(margin = c(2, 3)) %>% 
-  round(2)
+  round(3)
 ```
 
 
-Let's look again at what proportion of homes have and do not have fireplaces within each hsidstrict, by cooling status. Notice that for homes with central air, Monticello has 0.32 without a fireplace versus 0.19 for Albemarle. 
+Let's look again at what proportion of homes have and do not have fireplaces within each hsdistrict, by cooling status. Notice that for homes with central air, Monticello has 0.317 without a fireplace versus 0.192 for Albemarle. 
 
 ```{r}
 tab2 %>% 
   proportions(margin = c(1, 3)) %>% 
-  round(2)
+  round(3)
 ```
 
 
-What's the absolute and relative differences?
+What's the absolute and relative differences? First let's save the table.
 
 ```{r}
 # save table
 tab2_p <- tab2 %>% 
   proportions(margin = c(1, 3)) %>% 
-  round(2)
+  round(3)
 
 ```
 
@@ -296,7 +291,7 @@ tab2_p["Monticello", "No", "Central Air"] -
 ```
 
 
-Of all homes with central air, the proportion of homes without a fireplace in Monticello is 0.13 higher than the proportion of homes with a fireplace in Albemarle.
+Of all homes with central air, the proportion of homes without a fireplace in Monticello is 0.125 higher than the proportion of homes with a fireplace in Albemarle.
 
 Relative difference:
 
@@ -306,9 +301,9 @@ tab2_p["Monticello", "No", "Central Air"]/
 ```
 
 
-Of all homes with central air, Monticello has about 68% more homes without a fireplace than Albemarle.
+Of all homes with central air, Monticello has about 65% more homes without a fireplace than Albemarle.
 
-If you need a table as a data frame, which is needed for packages such as ggplot2, use the `as.data.frame()` function to make the conversion. By default the response name is labeled "Freq". You can change it with `responseName = "prop"`
+If you need a table as a data frame, which is needed for packages such as {ggplot2}, use the `as.data.frame()` function to make the conversion. By default the response name is labeled "Freq". You can change it with `responseName = "prop"`
 
 ```{r}
 tab2_df <- as.data.frame(tab2_p, responseName = "prop")
@@ -480,16 +475,10 @@ But a ECDF function allows us to calculate lots of quantiles at once.
 Fn(seq(1e5,1e6,1e5))
 ```
 
-We can also plot the ECD.
-
-```{r}
-plot(Fn)
-```
-
 
 ### Numeric summaries by group
 
-We often need to calculate summaries by groups. For example, what is the mean totalvalue by high school district?
+We often need to calculate summaries by groups. For example, what is the median totalvalue by high school district?
 
 The `aggregate()` function can help us do this. It returns a data frame and uses the same formula syntax as `xtabs()`. Place the numeric variable on the left hand side. The last argument is the function we wish to use to summarize the numeric data in each group.
 
@@ -571,7 +560,7 @@ d %>%
 
 ### Correlation
 
-Summarize linear relationship between finsqft and totalvalue.
+Summarize linear relationship between finsqft and totalvalue. 
 
 ```{r}
 cor(d$finsqft, d$totalvalue, method = "pearson")
@@ -626,27 +615,9 @@ Jittering can help reveal where most of the data is located.
 ```{r}
 ggplot(d) +
   aes(x = fullbath, y = bedroom) +
-  geom_jitter(alpha = 1/5) +
-  scale_x_continuous(breaks = 0:11, minor_breaks = FALSE) +
-  scale_y_continuous(breaks = 0:12, minor_breaks = FALSE)
+  geom_jitter(alpha = 1/5) 
 ```
 
-
-The `cor()` function works for data frames. This allows us to calculate correlation matrices. Below we select four columns and then pipe into the `cor()` function.  
-
-```{r}
-d %>% 
-  select(totalvalue, finsqft, lotsize) %>% 
-  cor()
-```
-
-As always, we should visualize the data. Here's a quick way to visualize all pairwise scatterplots using the base R `pairs()` function.
-
-```{r}
-d %>% 
-  select(totalvalue, finsqft, lotsize) %>% 
-  pairs()
-```
 
 
 ### Log transformations
@@ -760,18 +731,23 @@ SE_m <- sd(means)
 mean(samp) + c(-1, 1)*2*SE_m
 ```
 
-The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would take our _single sample_ and estimate a confidence interval using a math formula courtesy of a function such as `t.test()`
-
-```{r}
-t.test(samp)
-t.test(samp)$conf.int
-
-```
-
-The {Hmisc} package provides the `smean.cl.normal()` function that returns the mean and the lower/upper limits.
+The above was for educational purposes. In practice, we don't get to take 10,000 random samples. Instead we would take our _single sample_ and estimate a 95% confidence interval using a function such as `smean.cl.normal()` from the {Hmisc} package.
 
 ```{r}
 Hmisc::smean.cl.normal(samp)
+```
+
+R's built-in `t.test()` function can also calculate 95% confidence intervals.
+
+```{r}
+tout <- t.test(samp)
+tout$conf.int
+```
+
+It also calculates standard error.
+
+```{r}
+tout$stderr
 ```
 
 Again, if you're running this code, you're getting a different answer because we all took a different sample.
@@ -781,7 +757,393 @@ As our samples get bigger, our standard error decreases. We have more informatio
 NOTE: To reduce the standard error by 1/2, we need 4 times the sample size. So doubling our sample size of 50 to 100 _does not_ reduce our uncertainty by half. We would need a sample size of 50*4 = 200.
 
 
-### Uncertainty about a proportion
+## CODE ALONG 3
+
+The following data contains a sample of captured kangaroo rats (Dipodomys merriami) that were used to estimate population size and density. <https://doi.org/10.5061/dryad.8pk0p2nns>
+
+```{r}
+rats <- read.csv("https://github.com/uvastatlab/phdplus2023/raw/main/data/parasite.csv")
+```
+
+(1) The variable "Mass.g" measures the mass of the rat in grams at the time of sampling. Calculate the mean and a 95% confidence interval for "mass"
+
+
+(2) The variable "Pterygodermatites.dipodomis" indicates whether a sample was positive for the presence of Pterygodermatites dipodomis (1 = positive, 0 = negative). Calculate the proportion of rats with this parasite and a 95% confidence interval using the `prop.test()` function.
+
+
+Back to the slide deck! 
+
+## Hypothesis Testing 
+
+RECAP
+
+1. assume some null hypothesis is true
+2. calculate some statistic on data (eg, compare means)
+3. calculate probability of getting a statistic that big, or bigger (or that small, smaller) if null hypothesis is true
+4. if the probability (the p-value) is small, then we have evidence against the null hypothesis
+
+That's it. It's just a probability. p < 0.05 is not a threshold for certainty.
+
+### Comparing two proportions
+
+In the kangaroo rats data, about 35% had Pterygodermatites
+
+```{r}
+table(rats$Pterygodermatites.dipodomis) %>% proportions()
+```
+
+while about 20% had Mastophorus
+
+```{r}
+table(rats$Mastophorus.dipodomis) %>% proportions()
+
+```
+
+That's an absolute difference of about 15%.
+
+Assume there is no difference in these proportions in the population. What's the probability we would see a difference as big or bigger than this if that's true.
+
+We can use `prop.test()` to carry out this test. First we need to tally the number of "successes" and the number of "trials"
+
+```{r}
+cnt1 <- table(rats$Pterygodermatites.dipodomis)[2]
+cnt2 <- table(rats$Mastophorus.dipodomis)[2]
+n1 <- sum(table(rats$Pterygodermatites.dipodomis))
+n2 <- sum(table(rats$Mastophorus.dipodomis))
+```
+
+Now plug these values into `prop.test()`
+
+```{r}
+prop.test(x = c(cnt1, cnt2), n = c(n1, n2))
+```
+
+The p-value is reported as 0.001786. This seems like good evidence that the null of no difference in proportions can be rejected.
+
+The 95% confidence interval on the difference in proportions is [0.05, 0.23]. All of these values are equally plausible. 
+
+### Comparing two means
+
+Are male kangaroo rats heavier than female kangaroo rats on average? They seem slightly heavier.
+
+```{r}
+aggregate(Mass.g ~ Sex, data = rats, mean)
+```
+
+Assume there is no difference in the means. What's the probability we would see a difference as big or bigger than this if that's true?
+
+We can use `t.test()` to carry out this test.
+
+```{r}
+t.test(Mass.g ~ Sex, data = rats)
+```
+
+The p-value is reported as 0.4048. It seems probable we would see data like we observed if there really is no difference in mass between the sexes. 
+
+The 95% confidence interval on the difference in means overlaps 0 with both negative and positive numbers. All of these values are equally plausible. Whatever the "true" difference in means is between sexes, it's probably very small and not important.
+
+It's good practice to visualize data when comparing means. Here's a simple box plot. We would like both groups to have similar variability and be roughly symmetric. Violations of those properties lead to other approaches such as log transformations, permutation tests, bootstrapping, and non-parametric tests.
+
+```{r}
+boxplot(Mass.g ~ Sex, data = rats)
+```
+
+Most statistical analyses require more sophisticated methods than simple hypothesis tests. 
+
+Back to the presentation!
+
+## Modeling 
+
+Look at the distribution of total values.
+
+Obviously there is a great deal of variability in the value of a home. What might explain that variability?
+
+```{r}
+hist(d$totalvalue, breaks = 40)
+```
+
+
+Notice some of that variability appears to be associated with finsqft
+
+```{r}
+plot(totalvalue ~ finsqft, data = d)
+```
+
+
+We can attempt to model the totalvalue of a home using finsqft. In other words, create a math formula that allows us to estimate the expected totalvalue of a home based on its finsqft.
+
+### MODEL 1: simple linear model (one predictor)
+
+Model totalvalue as a function of finsqft using the `lm()` function with syntax `totalvalue ~ finsqft`, and save to an object called "m1"
+
+```{r}
+m1 <- lm(totalvalue ~ finsqft, data = d)
+summary(m1)
+
+```
+
+e+05 is scientific notation; it means move the decimal 5 places to the right.
+
+We can view the coefficients of a model using the `coef()` function. Sometimes this helps with the scientific notation.
+
+```{r}
+coef(m1)
+```
+
+The fitted model:
+
+```
+totalvalue = -164163.6587 + 314.6012*finsqft + ERROR
+```
+where ERROR is a random draw from a Normal dist with mean = 0 and sd = 259300. Predicted totalvalue using the model is expected to be off by about \$259,300.
+
+_Interpretation:_
+Each additional finsqft adds about \$314 to value of home. This is an _absolute_ effect. Whether you have 1500 finsqft or 2500 finsqft, we can expect each additional finsqft to add about \$314 to the totalvalue.
+
+The `confint()` function reports 95% confidence intervals on the model coefficients.
+
+```{r}
+confint(m1)
+```
+
+Each additional finsqft adds about 311-317 to the value of home.
+
+Let's use our model to make a prediction. For this we use the `predict()` function.
+
+What is the expected _mean value_ of homes with 2500 finsqft and the associated 95% confidence interval? Use `interval = "confidence"` since we're interested in the expected mean.
+
+```{r}
+predict(m1, newdata = data.frame(finsqft = 2500), 
+        interval = "confidence")
+```
+
+
+What is the expected _value of a single home_ with 2500 finsqft and the associated 95% confidence interval? Use `interval = "prediction"` since we're interested in a predicted value.
+
+```{r}
+predict(m1, newdata = data.frame(finsqft = 2500), 
+        interval = "prediction")
+```
+
+Notice how much wider this confidence interval is. That's because we're more uncertain about predicting a specific value than predicting a mean.
+
+But is this a good model? Should we trust these predictions? A simple check is to look at the adjusted R-squared.
+
+Adjusted R-squared:  0.578 
+This suggests about 58% of the variation in totalvalue is "explained" by finsqft.
+
+Can also look at _residuals_ versus _fitted values_ plot
+residual = observed value - fitted value
+
+There are 6 available plots; we ask for the first plot
+
+```{r}
+plot(m1, which = 1)
+```
+
+The dotted line is 0. Values above the line have higher totalvalues than the model predicts. Values below the line have lower totalvalues than the model predicts. Ideally we would like to see these points hover steadily around 0 throughout the range of predicted values.
+
+Verdict: Not great, but perhaps somewhat useful. Predicted values seem to get worse as the predicted values get bigger. 
+
+
+#### Summary Overview
+
+```{r}
+summary(m1)
+```
+
+
+- Residuals section: quick assessment of residuals. Ideally 1Q/3Q and Min/Max will be roughly equivalent in absolute value.
+- Coefficients: lists the estimated coefficients along with hypothesis tests for the null hypothesis that each coefficient is 0. Est/SE = t-value. 
+- Residual standard error: estimate of the constant standard deviation of the normal distribution of the errors
+- degrees of freedom: sample size - number of coefficients
+- R-squared: proportion of variance explained
+- F-statistic: overall test that all coefficients (except intercept) are 0.
+
+### MODEL 2: log transformed response
+
+When working with dollar amounts it is common to log transform the values. Dollar amounts, especially for things like properties and salaries, can be skewed. That's often because they scale multiplicatively as they get larger. (Salaries don't go up by $1000. They go up by 3%.)
+
+Let's model log-transformed totalvalue as a function of finsqft. This changes how we interpret the finsqft coefficient
+
+```{r}
+m2 <- lm(log(totalvalue) ~ finsqft, data = d)
+summary(m2)
+```
+
+We can get a better sense of the finsqft coefficient by multiplying by 100.
+
+```{r}
+coef(m2)["finsqft"] * 100
+```
+
+Every additional 100 finsqft adds about 4.8% to totalvalue of home. This is a _relative_ effect. The 4.8% change is constant, but relative to the current totalvalue.
+
+Is this a good model? The residuals vs fitted values plot is a good first check.
+
+```{r}
+plot(m2, which = 1)
+```
+
+
+Verdict: Now predicted values seem worse for smaller predicted values. But the model still seems like it may be useful
+
+Let's visualize the model using the {ggeffects} package. The `ggpredict()` function makes predictions for the specified variable. We can pipe the result into `plot()` and see a fitted line through the scatter plot of totalvalue vs finsqft.
+
+```{r}
+ggpredict(m2, terms = "finsqft") %>% 
+  plot(add.data = TRUE, dot.alpha = 0.1)
+```
+
+What's the expected value for a home with 2500 finsqft?
+
+```{r}
+predict(m2, newdata = data.frame(finsqft = 2500), interval = "confidence")
+```
+
+The result is on the log scale. Use `exp()` to return to the original scale.
+
+```{r}
+predict(m2, newdata = data.frame(finsqft = 2500), interval = "confidence") %>% 
+  exp()
+```
+
+
+### MODEL 3: two predictors with interaction
+
+Let's build a more complex model with two predictors: finsqft and cooling. We will let them interact. That is, we believe the effect of finsqft depends on cooling status.
+
+We define an interaction with a colon `:`. This says the association between totalvalue and finsqft depends on cooling.
+
+```{r}
+m3 <- lm(log(totalvalue) ~ finsqft + cooling + finsqft:cooling, 
+         data = d)
+summary(m3)
+```
+
+The last row of the summary output tests the interaction. It certainly seems to "significant" but is difficult to interpret.
+
+This seems like an OK model, at least for most homes. The residuals versus fitted values plot seems reasonable for most homes.
+
+```{r}
+plot(m3, which = 1)
+```
+
+
+Let's visualize the interaction in the model using effect plots. We can do that with `ggpredict()` by specifying `terms = c("finsqft", "cooling")`.
+
+The interaction appears to happen after 7500 finsqft. But the thick confidence ribbon indicates there are few (if any) homes that big without cooling.
+
+```{r}
+ggpredict(m3, terms = c("finsqft", "cooling")) %>% 
+  plot()
+```
+
+
+The "significant" interaction doesn't seem that interesting when zoomed in on a reasonable range of finsqft. The syntax `finsqft[1000:5000]` only works for functions in the {ggeffects} package.
+
+```{r}
+ggpredict(m3, terms = c("finsqft[1000:5000]", "cooling")) %>% 
+  plot()
+```
+
+This interaction is small and not important.
+
+In the model, notice we have a coefficient for "Central Air" only. That's because "No Central Air" is the reference level or baseline.
+
+```{r}
+coef(m3)
+```
+
+For homes with "No Central Air", the effect of finsqft is the finsqft coefficient. About a 5% increase for each additional 100 finsqft.
+
+```{r}
+coef(m3)[2] * 100
+```
+
+For homes with "Central Air", the effect of finsqft is the finsqft coefficient plus the interaction term. About a 4.5% increase for each additional 100 finsqft.
+
+```{r}
+sum(coef(m3)[2] + coef(m3)[4])* 100
+
+```
+
+
+There are many big books on linear modeling. This was not comprehensive!
+
+## CODE ALONG 4
+
+Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
+
+
+We're done!
+
+Lots of material was cut for time, but it's included below if you're interested.
+
+
+## Appendix: tidyverse grouped summaries
+
+Some R users prefer using tidyverse functions for grouped summaries, but notice the missing values are included by default in the legend.
+
+```{r}
+med_df2 <- d %>% 
+  group_by(hsdistrict, cooling) %>% 
+  summarize(totalvalue = median(totalvalue))
+
+ggplot(med_df2) +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = 'Median home values by HS District and Central Air status')
+```
+
+If we want to drop the NAs, we can add `scale_color_discrete(na.translate = FALSE)`
+
+```{r}
+ggplot(med_df2) +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_discrete(na.translate = FALSE) +
+  labs(title = 'Median home values by HS District and Central Air status')
+  
+```
+
+We can also filter them out using `!is.na()`. The means filter out the records that are NOT missing a value for cooling.
+
+```{r}
+med_df2 <- d %>% 
+  filter(!is.na(cooling)) %>% 
+  group_by(hsdistrict, cooling) %>% 
+  summarize(totalvalue = median(totalvalue))
+
+ggplot(med_df2) +
+  aes(x = hsdistrict, y = totalvalue, color = cooling) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(title = 'Median home values by HS District and Central Air status')
+```
+
+## Apendix: correlation for data frames
+
+
+The `cor()` function works for data frames. This allows us to calculate correlation matrices. Below we select four columns and then pipe into the `cor()` function.  
+
+```{r}
+d %>% 
+  select(totalvalue, finsqft, lotsize) %>% 
+  cor()
+```
+
+As always, we should visualize the data. Here's a quick way to visualize all pairwise scatterplots using the base R `pairs()` function.
+
+```{r}
+d %>% 
+  select(totalvalue, finsqft, lotsize) %>% 
+  pairs()
+```
+
+## Appendix: Uncertainty about a proportion
 
 Let's take a random sample of 50 homes' fireplace status. The fp variable is a categorical variable with levels "Yes" and "No". Below we form a vector of TRUE/FALSE and take the mean of TRUE, which returns the proportion of TRUE. We use `na.rm = TRUE` in the `mean()` function because some homes are missing this information in our data.
 
@@ -823,7 +1185,7 @@ binom::binom.confint(x = sum(samp2 == "Yes", na.rm = TRUE), n = 50)
 ```
 
 
-### 95% Confidence intervals
+## Appendix: 95% Confidence intervals
 
 The _process_ of calculating a confidence interval usually works 95% of the time. The "95%" is due to the fact that about 95% of the probability under a normal distribution is within two standard errors of the mean. And most sampling distributions are approximately normal.
 
@@ -923,434 +1285,6 @@ This has the stated 95% coverage. We might say we're confident in the process of
 Again, in practice we only get one sample. We don't get to resample the population thousands of times.
 
 
-## CODE ALONG 3
-
-The following data contains a sample of captured kangaroo rats (Dipodomys merriami) that were used to estimate population size and density. <https://doi.org/10.5061/dryad.8pk0p2nns>
-
-```{r}
-rats <- read.csv("https://github.com/uvastatlab/phdplus2023/raw/main/data/parasite.csv")
-```
-
-(1) The variable "Mass.g" measures the mass of the rat in grams at the time of sampling. Calculate the mean and a 95% confidence interval for "mass"
-
-
-(2) The variable "Pterygodermatites.dipodomis" indicates whether a sample was positive for the presence of Pterygodermatites dipodomis (1 = positive, 0 = negative). Calculate the proportion of rats with this parasite and a 95% confidence interval
-
-
-Back to the slide deck! 
-
-## Hypothesis Testing 
-
-RECAP
-
-1. assume some null hypothesis is true
-2. calculate some statistic on data (eg, compare means)
-3. calculate probability of getting a statistic that big, or bigger (or that small, smaller) if null hypothesis is true
-4. if the probability (the p-value) is small, then we have evidence against the null hypothesis
-
-That's it. It's just a probability. p < 0.05 is not a magic threshold for certainty.
-
-### Comparing two proportions
-
-In the kangaroo rats data, about 35% had Pterygodermatites
-
-```{r}
-table(rats$Pterygodermatites.dipodomis) %>% proportions()
-```
-
-while about 20% had Mastophorus
-
-```{r}
-table(rats$Mastophorus.dipodomis) %>% proportions()
-
-```
-
-That's an absolute difference of about 15%.
-
-Assume there is no difference in these proportions in the population. What's the probability we would see a difference as big or bigger than this if that's true.
-
-We can use `prop.test()` to carry out this test. First we need to tally the number of "successes" and the number of "trials"
-
-```{r}
-cnt1 <- table(rats$Pterygodermatites.dipodomis)[2]
-cnt2 <- table(rats$Mastophorus.dipodomis)[2]
-n1 <- sum(table(rats$Pterygodermatites.dipodomis))
-n2 <- sum(table(rats$Mastophorus.dipodomis))
-```
-
-Now plug these values into `prop.test()`
-
-```{r}
-prop.test(x = c(cnt1, cnt2), n = c(n1, n2))
-```
-
-The p-value is reported as 0.001786. This seems like good evidence that the proportion of rats with Pterygodermatites is higher. 
-
-The 95% confidence interval on the difference in proportions is [0.05, 0.23]. All of these values are equally plausible. 
-
-### Comparing two means
-
-Are male kangaroo rats heavier than female kangaroo rats on average? They seem slightly heavier.
-
-```{r}
-aggregate(Mass.g ~ Sex, data = rats, mean)
-```
-
-Assume there is no difference in the means. What's the probability we would see a difference as big or bigger than this if that's true?
-
-We can use `t.test()` to carry out this test.
-
-```{r}
-t.test(Mass.g ~ Sex, data = rats)
-```
-
-The p-value is reported as 0.4048. It seems probable we would see data like we observed if there really is no difference in mass between the sexes. 
-
-The 95% confidence interval on the difference in means overlaps 0 with both negative and positive numbers. All of these values are equally plausible. Whatever the "true" difference in means is between sexes, it's probably very small and not important.
-
-It's good practice to visualize data when comparing means. Here's a simple box plot. We would like both groups to have similar variability and be roughly symmetric. Violations of those properties lead to other approaches such as log transformations, permutation tests, bootstrapping, and non-parametric tests.
-
-```{r}
-boxplot(Mass.g ~ Sex, data = rats)
-```
-
-Most statistical analyses require more sophisticated methods than simple hypothesis tests. 
-
-Back to the presentation!
-
-## Modeling 
-
-Look at the distribution of total values.
-
-Obviously there is a great deal of variability in the value of a home. What might explain that variability?
-
-```{r}
-hist(d$totalvalue, breaks = 40)
-```
-
-
-Notice some of that variability appears to be associated with finsqft
-
-```{r}
-plot(totalvalue ~ finsqft, data = d)
-```
-
-
-We can attempt to model the totalvalue of a home using finsqft. In other words, create a a math formula that allows us to estimate the expected totalvalue of a home based on its finsqft.
-
-### MODEL 1: simple linear model (one predictor)
-
-Model totalvalue as a function of finsqft using the `lm()` function with syntax `totalvalue ~ finsqft`, and save to an object called "m1"
-
-```{r}
-m1 <- lm(totalvalue ~ finsqft, data = d)
-summary(m1)
-
-```
-
-e+05 is scientific notation; it means move the decimal 5 places to the right.
-
-We can view the coefficients of a model using the `coef()` function. Sometimes this helps with the scientific notation.
-
-```{r}
-coef(m1)
-```
-
-The fitted model:
-
-```
-totalvalue = -164163.6587 + 314.6012*finsqft + ERROR
-```
-where ERROR is a random draw from a Normal dist with mean = 0 and sd = 259300. Predicted totalvalue using the model is expected to be off by about \$259,300.
-
-_Interpretation:_
-Each additional finsqft adds about \$314 to value of home. This is an _absolute_ effect. Whether you have 1500 finsqft or 2500 finsqft, we can expect each additional finsqft to add about \$314 to the totalvalue.
-
-The `confint()` function reports 95% confidence intervals on the model coefficients.
-
-```{r}
-confint(m1)
-```
-
-Each additional finsqft adds about 311-317 to the value of home.
-
-Let's use our model to make a prediction.
-
-What is the expected _mean value_ of homes with 2500 finsqft and the associated 95% confidence interval? Use `interval = "confidence"` since we're interested in the expected mean.
-
-```{r}
-predict(m1, newdata = data.frame(finsqft = 2500), 
-        interval = "confidence")
-```
-
-
-What is the expected _value of a single home_ with 2500 finsqft and the associated 95% confidence interval? Use `interval = "prediction"` since we're interested in a predicted value.
-
-```{r}
-predict(m1, newdata = data.frame(finsqft = 2500), 
-        interval = "prediction")
-```
-
-Notice how much wider this confidence interval is. That's because we're more uncertain about predicting a specific value than predicting a mean.
-
-But is this a good model? Should we trust these predictions?
-
-Adjusted R-squared:  0.578 
-This suggests about 58% of the variation in totalvalue is "explained" by finsqft.
-
-Can also look at _residuals_ versus _fitted values_ plot
-residual = observed value - fitted value
-
-There are 6 available plots; we ask for the first plot
-
-```{r}
-plot(m1, which = 1)
-```
-
-The dotted line is 0. Values above the line have higher totalvalues than the model predicts. Values below the line have lower totalvalues than the model predicts. Ideally we would like to see these points hover steadily around 0 throughout the range of predicted values.
-
-Verdict: Not great, but perhaps somewhat useful. Predicted values seem to get worse as the predicted values get bigger. 
-
-
-#### Summary Overview
-
-```{r}
-summary(m1)
-```
-
-
-- Residuals section: quick assessment of residuals. Ideally 1Q/3Q and Min/Max will be roughly equivalent in absolute value.
-- Coefficients: lists the estimated coefficients along with hypothesis tests for the null hypothesis that each coefficient is 0. Est/SE = t-value. 
-- Residual standard error: estimate of the constant standard deviation of the normal distribution of the errors
-- degrees of freedom: sample size - number of coefficients
-- R-squared: proportion of variance explained
-- F-statistic: overall test that all coefficients (except intercept) are 0.
-
-### MODEL 2: log transformed response
-
-When working with dollar amounts it is common to log transform the values. Dollar amounts, especially for things like properties and salaries, can be skewed. That's often because they scale multiplicatively as they get larger. (Salaries don't go up by $1000. They go up by 3%.)
-
-Let's model log-transformed totalvalue as a function of finsqft. This changes how we interpret the finsqft coefficient
-
-```{r}
-m2 <- lm(log(totalvalue) ~ finsqft, data = d)
-summary(m2)
-```
-
-We can get a better sense of the finsqft coefficient by multiplying by 100.
-
-```{r}
-coef(m2)["finsqft"] * 100
-```
-
-Every additional 100 finsqft adds about 4.8% to totalvalue of home. This is a _relative_ effect. The 4.8% change is constant, but relative to the current totalvalue.
-
-Is this a good model? The residuals vs fitted values plot is a good first check.
-
-```{r}
-plot(m2, which = 1)
-```
-
-
-Verdict: Now predicted values seem worse for smaller predicted values. But the model still seems like it may be useful
-
-Let's visualize the model using the {ggeffects} package. The `ggpredict()` function makes predictions for the specified variable. We can pipe the result in `plot()` and see a fitted line through the scatter plot of totalvalue vs finsqft.
-
-```{r}
-ggpredict(m2, terms = "finsqft") %>% 
-  plot(add.data = TRUE, dot.alpha = 0.1)
-```
-
-What's the expected value for a home with 2500 finsqft?
-
-```{r}
-predict(m2, newdata = data.frame(finsqft = 2500), interval = "confidence")
-```
-
-The result is on the log scale. Use `exp()` to return to the original scale.
-
-```{r}
-predict(m2, newdata = data.frame(finsqft = 2500), interval = "confidence") %>% 
-  exp()
-```
-
-
-### MODEL 3: two predictors with interaction
-
-Let's build a more complex model with two predictors: finsqft and cooling. We will let them interact. That is, we believe the effect of finsqft depends on cooling status.
-
-We define an interaction with a colon `:`. This says the association between totalvalue and finsqft depends on cooling.
-
-```{r}
-m3 <- lm(log(totalvalue) ~ finsqft + cooling + finsqft:cooling, 
-         data = d)
-summary(m3)
-```
-
-The last row of the summary output tests the interaction. It certainly seems to "significant" but is difficult to interpret.
-
-This seems like an OK model, at least for most homes. The residuals versus fitted values plot seems reasonable for most homes.
-
-```{r}
-plot(m3, which = 1)
-```
-
-
-Let's visualize the interaction in the model using effect plots. We can do that with `ggpredict()` by specifying `terms = c("finsqft", "cooling")`.
-
-The interaction appears to happen after 7500 finsqft. But the thick confidence ribbon indicates there are few (if any) homes that big without cooling.
-
-```{r}
-ggpredict(m3, terms = c("finsqft", "cooling")) %>% 
-  plot()
-```
-
-
-The "significant" interaction doesn't seem that interesting when zoomed in on a reasonable range of finsqft. The syntax `finsqft[1000:5000]` only works for functions in the {ggeffects} package.
-
-```{r}
-ggpredict(m3, terms = c("finsqft[1000:5000]", "cooling")) %>% 
-  plot()
-```
-
-This interaction is small and not important.
-
-In the model, notice we have a coefficient for "Central Air" only. That's because "No Central Air" is the reference level or baseline.
-
-```{r}
-coef(m3)
-```
-
-For homes with "No Central Air", the effect of finsqft is the finsqft coefficient. About a 5% increase for each additional 100 finsqft.
-
-```{r}
-coef(m3)[2] * 100
-```
-
-For homes with "Central Air", the effect of finsqft is the finsqft coefficient plus the interaction term. About a 4.5% increase for each additional 100 finsqft.
-
-```{r}
-sum(coef(m3)[2] + coef(m3)[4])* 100
-
-```
-
-
-## Many hypothesis tests are special cases of linear models
-
-### ANOVA (one categorical predictor)
-
-We can carry out ANOVA using `aov()`...
-
-```{r}
-aov1 <- aov(totalvalue ~ hsdistrict, data = d)
-summary(aov1)
-```
-
-Or fit a linear model using `lm()`. (The `aov()` function uses `lm()` under the hood.)
-
-```{r}
-m5 <- lm(totalvalue ~ hsdistrict, data = d)
-anova(m5)
-```
-
-
-### t-test (one binary predictor)
-
-We can do a t-test with `t.test()`...
-
-```{r}
-t.test(log(totalvalue) ~ cooling, data = d, var.equal = TRUE)
-```
-
-Or fit a linear model using `lm()`
-
-```{r}
-m6 <- lm(log(totalvalue) ~ cooling, data = d)
-summary(m6)
-```
-
-
-### 2-sample proportion test (logistic regression)
-
-We can compare two proportions using `prop.test()`...
-
-```{r}
-xtabs(~ fp + remodel, data = d) %>% 
-  addmargins()
-```
-
-```{r}
-prop.test(x = c(21740, 1948), n = c(29870, 2771), correct = FALSE)
-```
-
-Or fit a logistic regression model using `glm()`
-
-```{r}
-m7 <- glm(fp ~ remodel, data = d, family = binomial)
-summary(m7)
-```
-
-```{r}
-# proportions
-predict(m7, newdata = data.frame(remodel = c(0,1)), 
-        type = "response")
-```
-
-
-There are many big books on linear modeling. This was not comprehensive!
-
-## CODE ALONG 4
-
-Model log(totalvalue) as a function of finsqft, hsdistrict, and their interaction using `lm()`. Call the model "mod1". Visualize the interaction between finsqft and hsdistrict.
-
-
-We're done!
-
-Lots of material was cut for time, but it's included below if you're interested.
-
-
-## Appendix: tidyverse grouped summaries
-
-Some R users prefer using tidyverse functions for grouped summaries, but notice the missing values are included by default in the legend.
-
-```{r}
-med_df2 <- d %>% 
-  group_by(hsdistrict, cooling) %>% 
-  summarize(totalvalue = median(totalvalue))
-
-ggplot(med_df2) +
-  aes(x = hsdistrict, y = totalvalue, color = cooling) +
-  geom_point(size = 3) +
-  scale_y_continuous(labels = scales::dollar) +
-  labs(title = 'Median home values by HS District and Central Air status')
-```
-
-If we want to drop the NAs, we can add `scale_color_discrete(na.translate = FALSE)`
-
-```{r}
-ggplot(med_df2) +
-  aes(x = hsdistrict, y = totalvalue, color = cooling) +
-  geom_point(size = 3) +
-  scale_y_continuous(labels = scales::dollar) +
-  scale_color_discrete(na.translate = FALSE) +
-  labs(title = 'Median home values by HS District and Central Air status')
-  
-```
-
-We can also filter them out using `!is.na()`. The means filter out the records that are NOT missing a value for cooling.
-
-```{r}
-med_df2 <- d %>% 
-  filter(!is.na(cooling)) %>% 
-  group_by(hsdistrict, cooling) %>% 
-  summarize(totalvalue = median(totalvalue))
-
-ggplot(med_df2) +
-  aes(x = hsdistrict, y = totalvalue, color = cooling) +
-  geom_point(size = 3) +
-  scale_y_continuous(labels = scales::dollar) +
-  labs(title = 'Median home values by HS District and Central Air status')
-```
 
 
 
@@ -1668,3 +1602,65 @@ posterior_interval(bm1)
 ```
 
 See the vignettes that accomplany the {rstanarm} package for more details and examples of Bayesian data analysis.
+
+
+## Appendix: Many hypothesis tests are special cases of linear models
+
+### ANOVA (one categorical predictor)
+
+We can carry out ANOVA using `aov()`...
+
+```{r}
+aov1 <- aov(totalvalue ~ hsdistrict, data = d)
+summary(aov1)
+```
+
+Or fit a linear model using `lm()`. (The `aov()` function uses `lm()` under the hood.)
+
+```{r}
+m5 <- lm(totalvalue ~ hsdistrict, data = d)
+anova(m5)
+```
+
+
+### t-test (one binary predictor)
+
+We can do a t-test with `t.test()`...
+
+```{r}
+t.test(log(totalvalue) ~ cooling, data = d, var.equal = TRUE)
+```
+
+Or fit a linear model using `lm()`
+
+```{r}
+m6 <- lm(log(totalvalue) ~ cooling, data = d)
+summary(m6)
+```
+
+
+### 2-sample proportion test (logistic regression)
+
+We can compare two proportions using `prop.test()`...
+
+```{r}
+xtabs(~ fp + remodel, data = d) %>% 
+  addmargins()
+```
+
+```{r}
+prop.test(x = c(21740, 1948), n = c(29870, 2771), correct = FALSE)
+```
+
+Or fit a logistic regression model using `glm()`
+
+```{r}
+m7 <- glm(fp ~ remodel, data = d, family = binomial)
+summary(m7)
+```
+
+```{r}
+# proportions
+predict(m7, newdata = data.frame(remodel = c(0,1)), 
+        type = "response")
+```
