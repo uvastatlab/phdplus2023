@@ -27,10 +27,11 @@ The following web page allows the public to download all earthquakes recorded by
 
 The data has 22 variables which are documented on the following web page: <https://earthquake.usgs.gov/data/comcat/index.php#event-terms>
 
+I created an abbreviated code book here: 
+<https://uvastatlab.github.io/phdplus2023/usgs_codebook.html>
+
 Each row in the data represents one earthquake. The data is ordered by earthquake date in descending order, with the most recent earthquake first.
 
-Abbreviated code book: 
-<https://uvastatlab.github.io/phdplus2023/usgs_codebook.html>
 
 ## 1. Read in the data
 
@@ -40,7 +41,7 @@ https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv
 
 Using the URL above, import the data as a data frame object and name it "d".
 
-Tip: use the `read_csv()` function in the readr package. Recall that `read_csv()` works with URLs. The base R `read.csv` works just fine, but the `read_csv` function automatically formats the dates for us.
+Tip: use the `read_csv()` function in the {readr} package. Recall that `read_csv()` works with URLs. The base R `read.csv` works just fine, but the `read_csv` function automatically formats the dates for us.
 
 ```{r}
 library(tidyverse)
@@ -101,8 +102,7 @@ Hmisc::describe(d$mag)
 ```{r}
 ggplot(d) +
   aes(x = mag) +
-  geom_density() +
-  scale_x_continuous(breaks = seq(0, 7, 0.5))
+  geom_density()
 ```
 
 ```{r}
@@ -218,11 +218,17 @@ mean(d$type == "earthquake")
 ```{r}
 d %>% 
   count(type) %>% 
-  mutate(freq = n / sum(n))
+  mutate(prop = n / sum(n)) %>% 
+  slice(1)
 ```
 
 
 - What was the maximum magnitude for each seismic event?
+
+```{r}
+aggregate(mag ~ type, data = d, max)
+```
+
 
 ```{r}
 d %>% 
@@ -252,6 +258,12 @@ ggplot(d) +
 ggplot(d) +
   aes(x = type, y = mag) +
   geom_jitter(height = 0)
+```
+
+```{r}
+ggplot(d) +
+  aes(x = mag, y = type) +
+  ggridges::geom_density_ridges()
 ```
 
 
@@ -334,7 +346,7 @@ _Anchor Point, Alaska_
 
 And if a row has place "South Sandwich Islands region" we want location to be "South Sandwich Islands region". 
 
-The `str_replace()` function from the **stringr** package (a tidyverse package) finds a text pattern and replaces it with whatever we specify. Below we define a _regular expression_ ".+ of " that means "one or more characters (.+) followed by " of ". We find that text pattern, replace it with nothing, and save the result to a new column called "location". Please run this code.
+The `str_replace()` function from the {stringr} package (a tidyverse package) finds a text pattern and replaces it with whatever we specify. Below we define a _regular expression_ ".+ of " that means "one or more characters (.+) followed by " of ". We find that text pattern, replace it with nothing, and save the result to a new column called "location". Please run this code.
 
 ```{r}
 d <- d %>% 
@@ -366,7 +378,7 @@ d %>%
   head(n = 5)
 ```
 
-- How many locations have experienced more than 100 seismic events?
+- How many locations have experienced more than 100 seismic events in the past 30 days?
 
 ```{r}
 d %>% 
@@ -414,7 +426,7 @@ d$time[1:2]
 
 UTC is Universal Coordinated Time. Also knows as Greenwich Mean Time.
 
-The times look like they're character values, but that's just how they print. Internally they are stored as number of seconds since January 1, 1970. (Recall that the `read_csv()` function automatically formatted the date-times for us.) We can see their values by calling `as.numeric()` on the times.
+The times look like they're character values, but that's just how they print. Internally they are stored as number of _seconds_ since January 1, 1970. (Recall that the `read_csv()` function automatically formatted the date-times for us.) We can see their values by calling `as.numeric()` on the times.
 
 ```{r}
 as.numeric(d$time[1:2])
@@ -456,17 +468,15 @@ hist(as.numeric(d$elapsed_time))
 
 ```{r}
 median(d$elapsed_time, na.rm = TRUE)
+median(d$elapsed_time, na.rm = TRUE) %>% format()
+median(d$elapsed_time, na.rm = TRUE) %>% as.numeric()
+
 ```
 
 - What's the estimated probability a seismic event happens in the next 60 seconds? (Hint: what is the proportion of elapsed times less than 1 minute?)
 
 ```{r}
 mean(d$elapsed_time < 1, na.rm = TRUE)
-```
-
-
-```{r}
-pexp(q = 1, rate = 1/mean(as.numeric(d$elapsed_time), na.rm = TRUE))
 ```
 
 
@@ -571,7 +581,7 @@ d %>%
 
 ## 16. Seismic events in the United States by State
 
-What if we wanted a breakdown of seismic events by US state? It would help to have a column that identifies state. Below we filter by US and then use our regular expression from the last task with the stringr function `str_extract()`. We also rename states with "CA" to say "California" using the `if_else` function. Finally we save to a new data frame called "us".
+What if we wanted a breakdown of seismic events by US state? It would help to have a column that identifies state. Below we filter by US and then use our regular expression from the last task with the {stringr} function `str_extract()`. We also rename states with "CA" to say "California" using the `if_else` function. Finally we save to a new data frame called "us".
 
 ```{r}
 us <- d %>% 
@@ -592,7 +602,7 @@ With our new data frame created, please complete the following tasks.
 ```{r}
 us %>% 
   count(state) %>% 
-  arrange(desc(n))
+  arrange(desc(n)) 
 ```
 
 - What are the top five states for highest magnitude experienced? 
