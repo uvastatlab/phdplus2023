@@ -162,12 +162,15 @@ table(d$status)
 
 ```{r}
 mean(d$status == "reviewed")
+table(d$status) %>% proportions()
 ```
 
-- The magSource variable reports the network that originally authored the reported magnitude for this event. Create a cross tabulation between status and magSource. See this page for network definitions: <https://www.emsc-csem.org/Earthquake/contributors.php>
+- The magSource variable reports the network that originally authored the reported magnitude for this event. Create a cross tabulation between status and magSource showing status proportion for each magSource. See this page for network definitions: <https://www.emsc-csem.org/Earthquake/contributors.php>
 
 ```{r}
-xtabs(~ magSource + status, data = d)
+xtabs(~ magSource + status, data = d) %>% 
+  proportions(margin = 1) %>% 
+  round(2)
 ```
 
 
@@ -455,21 +458,35 @@ d %>%
   head()
 ```
 
+Let's convert elapsed time to "numeric" instead of "time". That way "mins" will be stripped from the value.
+
+```{r}
+d <- d %>% mutate(elapsed_time = as.numeric(elapsed_time))
+d %>% 
+  select(time, elapsed_time) %>% 
+  head()
+```
+
 
 Please perform the following tasks.
 
 - Visualize the distribution of elapsed time.
 
 ```{r}
-hist(as.numeric(d$elapsed_time))
+hist(d$elapsed_time)
 ```
+
+```{r}
+ggplot(d) +
+  aes(x = elapsed_time) +
+  geom_density()
+```
+
 
 - What is the median elapsed time between seismic events? In other words, about how often is the USGS detecting seismic events on earth?
 
 ```{r}
 median(d$elapsed_time, na.rm = TRUE)
-median(d$elapsed_time, na.rm = TRUE) %>% format()
-median(d$elapsed_time, na.rm = TRUE) %>% as.numeric()
 
 ```
 

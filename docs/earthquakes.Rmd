@@ -21,11 +21,14 @@ We will all work together on this.
 
 ## About the data
 
-The following web page allows the public to download all earthquakes recorded by the US Geological Survey (USGS) in the past 30 days. 
+The following web page allows the public to download all earthquakes recorded by the US Geological Survey (USGS) in the past 30 days. Updated every minute.
 
 <https://earthquake.usgs.gov/earthquakes/feed/v1.0/csv.php>
 
-The data has 22 variables which are documented on the following web page: <https://earthquake.usgs.gov/data/comcat/index.php>
+The data has 22 variables which are documented on the following web page: <https://earthquake.usgs.gov/data/comcat/index.php#event-terms>
+
+I created an abbreviated code book here: 
+<https://uvastatlab.github.io/phdplus2023/usgs_codebook.html>
 
 Each row in the data represents one earthquake. The data is ordered by earthquake date in descending order, with the most recent earthquake first.
 
@@ -38,13 +41,7 @@ https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv
 
 Using the URL above, import the data as a data frame object and name it "d".
 
-Tip: use the `read_csv()` function in the readr package. Recall that `read_csv()` works with URLs. The base R `read.csv` works just fine, but the `read_csv` function automatically formats the dates for us.
-
-```{r}
-library(tidyverse)
-URL <- "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.csv"
-d <- read_csv(URL)
-```
+Tip: use the `read_csv()` function in the {readr} package. Recall that `read_csv()` works with URLs. The base R `read.csv` works just fine, but the `read_csv` function automatically formats the dates for us.
 
 BACKUP PLAN: If for some reason the USGS site is down, please use this URL: https://github.com/uvastatlab/phdplus2023/raw/main/data/all_month.csv 
 
@@ -54,22 +51,31 @@ Use at least two functions to learn about the data.
 
 
 
+## 3. Summarize magnitude numerically and visually
 
-## 3. Visualize the distribution of magnitude
-
-The "mag" variable measures the magnitude of an earthquake on the Richter scale. It is a logarithmic scale which means it's multiplicative. An earthquake of magnitude 3 is 10 times stronger than an earthquake of magnitude 2. An earthquake of magnitude 4 is 10 times stronger than an earthquake of magnitude 3. And so on. 
+The "mag" variable measures the magnitude of an earthquake on the Richter scale. It is a logarithmic scale which means it's multiplicative. An earthquake of magnitude 3 is about 10 times stronger than an earthquake of magnitude 2. An earthquake of magnitude 4 is about 10 times stronger than an earthquake of magnitude 3. And so on. 
 
 Note: magnitude can sometimes be negative! https://www.usgs.gov/faqs/how-can-earthquake-have-negative-magnitude
 
-Visualize the distribution of "mag". 
+"An earthquake of negative magnitude is a very small earthquake that is not felt by humans."
+
+- Summarize "mag" numerically
+
+
+- Summarize "mag" visually
+
+
+- What are the top 10 biggest earthquakes in our data?
 
 
 
-## 4. Visualize the relationship between depth and magnitude
+## 4. Summarize the relationship between depth and magnitude numerically and visually
 
-The "depth" variable measures the depth of an earthquake in kilometers. 
+The "depth" variable measures the depth of an earthquake in kilometers. How is the depth of an earthquake associated with its magnitude ("mag")? 
 
-How is the depth of an earthquake associated with its magnitude ("mag")? Create a visualization to investigate with "mag" on the y-axis. 
+- Create a visualization with "mag" on the y-axis. 
+
+- Summarize the relationship numerically.
 
 
 ## 5. Investigate the status of the seismic event
@@ -78,15 +84,17 @@ Status is either "automatic" or "reviewed." Automatic events are directly posted
 
 - How many events have been reviewed?
 
-
 - What proportion have been reviewed?
+
+
+- The magSource variable reports the network that originally authored the reported magnitude for this event. Create a cross tabulation between status and magSource showing status proportion for each magSource. See this page for network definitions: <https://www.emsc-csem.org/Earthquake/contributors.php>
+
 
 
 
 ## 6. Visualize the relationship between depth and magnitude by status
 
 Update your earlier plot that visualized the relationship between depth and magnitude to incorporate information about status. 
-
 
 
 ## 7. Investigate the various seismic events
@@ -98,17 +106,14 @@ Please answer the following questions:
 - What are the counts of the various seismic events? 
 
 
-
-
 - What proportion of the seismic events were "earthquakes"?
-
 
 
 - What was the maximum magnitude for each seismic event?
 
 
 - What proportion of seismic events are NOT recorded as "earthquakes"?
-`
+
 
 
 ## 8. Visualize the distribution of magnitude between seismic events
@@ -118,7 +123,7 @@ How does the distribution of magnitude vary between seismic events?
 
 
 
-# 9. Visualize the relationship between depth and depth error
+## 9. Visualize the relationship between depth and depth error
 
 The "depth" variable measures the depth of an earthquake in kilometers.
 
@@ -130,9 +135,7 @@ Is "depthError" associated with "depth"?
 
 
 
-
 - Which observations (if any) had depth errors larger than 40? List those observations showing the status, depth, depthError, place, and mag columns.
-
 
 
 ## 10. Visualize the relationship between magError and magType
@@ -142,7 +145,6 @@ The "magType" column reports the method or algorithm used to calculate the magni
 The "magError" column reports the uncertainty of the reported magnitude of an event. (ie, the estimated standard error of the magnitude.) A magError greater than 3 is considered large.
 
 How does the distribution of magError differ between magType? Are there certain methods that have higher error? _Create at least two visualizations to explore this_. 
-
 
 
 
@@ -168,7 +170,7 @@ _Anchor Point, Alaska_
 
 And if a row has place "South Sandwich Islands region" we want location to be "South Sandwich Islands region". 
 
-The `str_replace()` function from the **stringr** package (a tidyverse package) finds a text pattern and replaces it with whatever we specify. Below we define a _regular expression_ ".+ of " that means "one or more characters (.+) followed by " of ". We find that text pattern, replace it with nothing, and save the result to a new column called "location". Please run this code.
+The `str_replace()` function from the {stringr} package (a tidyverse package) finds a text pattern and replaces it with whatever we specify. Below we define a _regular expression_ ".+ of " that means "one or more characters (.+) followed by " of ". We find that text pattern, replace it with nothing, and save the result to a new column called "location". Please run this code.
 
 ```{r}
 d <- d %>% 
@@ -188,20 +190,18 @@ Now answer the following questions:
 - What are the top five locations for most seismic events? 
 
 
-``
 
-- How many locations have experienced more than 100 seismic events?
+- How many locations have experienced more than 100 seismic events in the past 30 days?
 
-`
 
 
 - Which locations experienced more than 5 seismic events classified as `type == "quarry blast"`. 
 
 
+
 ## 12. Do seismic events in some locations tend to have larger magError?
 
-The "magError" column reports the uncertainty of the reported magnitude of an event. (ie, the estimated standard error of the magnitude.) A "magError" greater than 3 is considered large. Using our new "location" column, is there a location that seems to consistently have large "magErrors"? 
-
+The "magError" column reports the uncertainty of the reported magnitude of an event. (ie, the estimated standard error of the magnitude.) A "magError" greater than 3 is considered large. Using our new "location" column, is there a location that seems to consistently have large "magErrors" (greater than 3)? 
 
 
 
@@ -215,7 +215,7 @@ d$time[1:2]
 
 UTC is Universal Coordinated Time. Also knows as Greenwich Mean Time.
 
-The times look like they're character values, but that's just how they print. Internally they are stored as number of seconds since January 1, 1970. (Recall that the `read_csv()` function automatically formatted the date-times for us.) We can see their values by calling `as.numeric()` on the times.
+The times look like they're character values, but that's just how they print. Internally they are stored as number of _seconds_ since January 1, 1970. (Recall that the `read_csv()` function automatically formatted the date-times for us.) We can see their values by calling `as.numeric()` on the times.
 
 ```{r}
 as.numeric(d$time[1:2])
@@ -229,16 +229,25 @@ The elapsed time between the two seismic events is the first time minus the seco
 d$time[1] - d$time[2]
 ```
 
-The following R code does this for all times. It adds a column to our data frame called "elapsed_time" that stores the time elapsed between seismic events. We use the dplyr function `lead()` which returns the "next" value in a vector and perform subtraction. The last row will have NA since it's the oldest record in our data and we don't have the time of the earthquake before it.
+The following R code does this for all times. It adds a column to our data frame called "elapsed_time" that stores the time elapsed between seismic events. We use the dplyr function `lead()` to fetch the "next" value in a vector. The time difference is calculated by the `difftime()` function. The last row will have NA since it's the oldest record in our data and we don't have the time of the earthquake before it. The `units` argument stores the time difference as minutes.
 
 ```{r}
 d <- d %>% 
-  mutate(elapsed_time = time - lead(time))
+  mutate(elapsed_time = difftime(time, lead(time), units = "mins"))
 ```
 
 Quick look at the first 6 rows.
 
 ```{r}
+d %>% 
+  select(time, elapsed_time) %>% 
+  head()
+```
+
+Let's convert elapsed time to "numeric" instead of "time". That way "mins" will be stripped from the value.
+
+```{r}
+d <- d %>% mutate(elapsed_time = as.numeric(elapsed_time))
 d %>% 
   select(time, elapsed_time) %>% 
   head()
@@ -250,7 +259,13 @@ Please perform the following tasks.
 - Visualize the distribution of elapsed time.
 
 
+
 - What is the median elapsed time between seismic events? In other words, about how often is the USGS detecting seismic events on earth?
+
+
+
+- What's the estimated probability a seismic event happens in the next 60 seconds? (Hint: what is the proportion of elapsed times less than 1 minute?)
+
 
 
 
@@ -262,7 +277,6 @@ Previously the elapsed time between seismic events was calculated worldwide.
 
 
 - What was the median elapsed time between seismic events in "Pāhala, Hawaii"? Tip: "Pāhala, Hawaii" has a special character in it. When you `filter()`, consider using something like `str_detect(location, "P*hala, Hawaii")`
-
 
 
 ## 15. Seismic events in the United States
@@ -299,11 +313,12 @@ d %>%
 
 With our US column added, please complete the following tasks.
 
+- What proportion of all seismic events recorded by the USGS occurred in the United States?
+
 - Visualize the distribution of "mag" for those events that occurred in the US.
 
 
 - Count up the types of seismic events that occurred in the US.
-
 
 
 - What is the median seismic event magnitude in the US?
@@ -311,11 +326,10 @@ With our US column added, please complete the following tasks.
 
 - how does the median seismic event magnitude for the US differ from the rest of the world?
 
-`
 
 ## 16. Seismic events in the United States by State
 
-What if we wanted a breakdown of seismic events by US state? It would help to have a column that identifies state. Below we filter by US and then use our regular expression from the last task with the stringr function `str_extract()`. We also rename states with "CA" to say "California" using the `if_else` function. Finally we save to a new data frame called "us".
+What if we wanted a breakdown of seismic events by US state? It would help to have a column that identifies state. Below we filter by US and then use our regular expression from the last task with the {stringr} function `str_extract()`. We also rename states with "CA" to say "California" using the `if_else` function. Finally we save to a new data frame called "us".
 
 ```{r}
 us <- d %>% 
@@ -335,6 +349,9 @@ With our new data frame created, please complete the following tasks.
 
 
 - What are the top five states for highest magnitude experienced? 
+
+
+- Earthquakes occur rather frequently in Hawaii. What's the estimated mean magnitude of those events? Include a confidence interval on your estimate.
 
 
 
