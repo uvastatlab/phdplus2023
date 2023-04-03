@@ -85,6 +85,8 @@ Instructor: Clay Ford
 
 In the final session we give you an opportunity to use your data literacy skills to explore and summarize [earthquake data](https://earthquake.usgs.gov/earthquakes/feed/v1.0/csv.php) courtesy of the US Geological Survey. This final project will consist of a series of tasks that guide you through the process of wrangling, analyzing and visualizing data on earthquakes to better understand where they occur, how often, their magnitude, and more. 
 
+[Workshop Materials](https://github.com/uvastatlab/phdplus2023/raw/main/docs/06_final_project.zip)
+
 <br>
 <br>
 
