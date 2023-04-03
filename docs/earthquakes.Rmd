@@ -264,7 +264,7 @@ Please perform the following tasks.
 
 
 
-- What's the estimated probability a seismic event happens in the next 60 seconds? (Hint: what is the proportion of elapsed times less than 1 minute?)
+- What's the estimated probability a seismic event happens in the next 60 seconds?
 
 
 
